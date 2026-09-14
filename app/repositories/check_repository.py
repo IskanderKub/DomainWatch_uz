@@ -31,3 +31,6 @@ class CheckRepository:
             .order_by(CheckResult.checked_at.desc())
             .first()
         )
+
+    def get_by_id(self, check_id: int) -> CheckResult | None:
+        return self.db.get(CheckResult, check_id)
