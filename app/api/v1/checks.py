@@ -44,7 +44,9 @@ def get_check_snapshot(
     # 2. Проверяем, существует ли сама проверка в Postgres и принадлежит ли она этому домену
     check = CheckRepository(db).get_by_id(check_id)
     if check is None or check.domain_id != domain_id:
-        raise HTTPException(status_code=404, detail="Check result not found for this domain")
+        raise HTTPException(
+            status_code=404, detail="Check result not found for this domain"
+        )
 
     # 3. Запрашиваем raw-текст снапшота из Mongo через SnapshotRepository
     snapshot_repo = SnapshotRepository()
@@ -58,5 +60,5 @@ def get_check_snapshot(
         "check_id": check_id,
         "domain_id": domain_id,
         "text_content": snapshot.get("text_content"),
-        "created_at": snapshot.get("created_at"),
+        "checked_at": snapshot.get("checked_at"),
     }

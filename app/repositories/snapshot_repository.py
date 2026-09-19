@@ -9,8 +9,6 @@ from app.core.mongo import snapshots_collection
 
 from bson import ObjectId
 
-def get_by_check_id(self, check_id: int) -> dict | None:
-        return self.collection.find_one({"check_id": check_id})
 
 def _content_hash(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
