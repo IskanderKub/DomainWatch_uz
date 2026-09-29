@@ -45,29 +45,30 @@ class CheckerService:
         try:
             response = requests.get(domain.url, timeout=settings.check_timeout_seconds)
             response_time_ms = (time.monotonic() - started_at) * 1000
-            text_content = _extract_text(response.text)
 
             similarity_ratio = None
             is_suspected_defacement = False
-            try:
-                previous_snapshot = self.snapshot_repository.get_latest(domain.id)
-                if previous_snapshot is not None:
-                    # only compare/flag from the second check onward - there's nothing
-                    # to compare the very first snapshot against
-                    similarity_ratio = _similarity(
-                        previous_snapshot["text_content"], text_content
-                    )
-                    is_suspected_defacement = (
-                        similarity_ratio < settings.content_change_threshold
-                    )
+            if response.ok:
+                text_content = _extract_text(response.text)
+                try:
+                    previous_snapshot = self.snapshot_repository.get_latest(domain.id)
+                    if previous_snapshot is not None:
+                        # only compare/flag from the second check onward - there's nothing
+                        # to compare the very first snapshot against
+                        similarity_ratio = _similarity(
+                            previous_snapshot["text_content"], text_content
+                        )
+                        is_suspected_defacement = (
+                            similarity_ratio < settings.content_change_threshold
+                        )
 
-                    # always store the new snapshot, even if this check flagged a defacement,
-                    # so the next check compares against the latest known content
-                snapshot_id = self.snapshot_repository.save(domain.id, text_content)
-            except PyMongoError as exc:
-                logger.warning(
-                    "Snapshot storage unavailable for domain %s: %s", domain.id, exc
-                )
+                        # always store the new snapshot, even if this check flagged a defacement,
+                        # so the next check compares against the latest known content
+                    snapshot_id = self.snapshot_repository.save(domain.id, text_content)
+                except PyMongoError as exc:
+                    logger.warning(
+                        "Snapshot storage unavailable for domain %s: %s", domain.id, exc
+                    )
             check = CheckResult(
                 domain_id=domain.id,
                 is_available=response.ok,
