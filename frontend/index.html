@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DomainWatch.uz</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>DomainWatch<span class="accent">.uz</span></h1>
+    <p class="subtitle">Мониторинг доступности и детекция подмены контента</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Добавить домен</h2>
+      <form id="add-domain-form" class="add-form">
+        <input type="text" id="domain-name" placeholder="example.uz" required />
+        <input type="url" id="domain-url" placeholder="https://example.uz" required />
+        <button type="submit">Добавить</button>
+      </form>
+      <p id="add-error" class="error" hidden></p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Домены</h2>
+        <button id="refresh-btn" class="secondary">Обновить</button>
+      </div>
+      <p id="domains-empty" class="empty" hidden>Пока нет ни одного домена — добавьте первый выше.</p>
+      <div class="table-wrap">
+        <table id="domains-table" hidden>
+          <thead>
+            <tr>
+              <th>Домен</th>
+              <th>Статус</th>
+              <th>Uptime</th>
+              <th>Ср. отклик</th>
+              <th>Дефейс?</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="domains-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" id="history-panel" hidden>
+      <div class="panel-header">
+        <h2 id="history-title">История проверок</h2>
+        <button id="history-close" class="secondary">Закрыть</button>
+      </div>
+      <div class="table-wrap">
+        <table id="history-table">
+          <thead>
+            <tr>
+              <th>Время</th>
+              <th>Доступен</th>
+              <th>Код</th>
+              <th>Отклик, мс</th>
+              <th>Схожесть</th>
+              <th>Подозрение</th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

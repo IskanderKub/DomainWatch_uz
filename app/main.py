@@ -2,6 +2,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import router as api_v1_router
 from app.core.postgres import Base, engine
@@ -29,3 +30,8 @@ app.include_router(api_v1_router)
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# mounted last so it never shadows the API routes/health check above -
+# Starlette matches routes in registration order, and this is a catch-all
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")

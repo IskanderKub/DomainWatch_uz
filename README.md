@@ -40,6 +40,8 @@ docker compose up --build
 
 API будет доступно на `http://localhost:8000`, документация — на `http://localhost:8000/docs`.
 
+Дашборд (простой HTML/CSS/JS, без сборки) открывается на `http://localhost:8000/` — добавление доменов, запуск проверок, статистика и история проверок. Файлы лежат в [frontend/](frontend/) и раздаются самим FastAPI через `StaticFiles`.
+
 ## Локальный запуск
 
 ```bash
