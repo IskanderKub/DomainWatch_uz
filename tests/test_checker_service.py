@@ -115,3 +115,23 @@ def test_check_domain_reuses_snapshot_when_content_unchanged(db_session, mocker)
 
     assert len(snapshot_repo.documents) == 1
     assert snapshot_repo.documents[0]["seen_count"] == 2
+
+
+def test_check_domain_skips_snapshot_on_error_status(db_session, mocker):
+    # a blocked/failing response must not be stored as if it were site content
+    domain = _make_domain(db_session)
+    mocker.patch(
+        "app.services.checker_service.requests.get",
+        return_value=FakeResponse(
+            status_code=403, ok=False, text="<html><body>Forbidden</body></html>"
+        ),
+    )
+    snapshot_repo = FakeSnapshotRepository()
+    service = CheckerService(db_session, snapshot_repository=snapshot_repo)
+
+    result = service.check_domain(domain)
+
+    assert result.is_available is False
+    assert result.status_code == 403
+    assert result.similarity_ratio is None
+    assert snapshot_repo.documents == []
