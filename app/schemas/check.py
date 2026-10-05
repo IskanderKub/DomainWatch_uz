@@ -26,3 +26,20 @@ class SnapshotRead(BaseModel):
     domain_id: int
     checked_at: datetime
     text_content: str
+
+
+class DiffSegment(BaseModel):
+    """A run of words that was kept, removed or added between two snapshots."""
+
+    op: str  # "equal" | "removed" | "added"
+    text: str
+
+
+class DefacementRead(BaseModel):
+    """A suspected-defacement check, together with what changed on the page."""
+
+    check_id: int
+    checked_at: datetime
+    similarity_ratio: float | None
+    # None when the snapshots needed for the diff are gone (TTL) or Mongo is unreachable
+    diff: list[DiffSegment] | None

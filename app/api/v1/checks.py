@@ -1,5 +1,7 @@
 # REST endpoints for triggering and reading domain checks.
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -22,8 +24,17 @@ def trigger_check(domain_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=list[CheckResultRead])
-def list_checks(domain_id: int, limit: int = 100, db: Session = Depends(get_db)):
+def list_checks(
+    domain_id: int,
+    limit: int = Query(100, ge=1, le=10000),
+    since: datetime | None = None,
+    until: datetime | None = None,
+    is_available: bool | None = None,
+    db: Session = Depends(get_db),
+):
     domain = DomainService(db).get_domain(domain_id)
     if domain is None:
         raise HTTPException(status_code=404, detail="Domain not found")
-    return CheckRepository(db).list_for_domain(domain_id, limit=limit)
+    return CheckRepository(db).list_for_domain(
+        domain_id, limit=limit, since=since, until=until, is_available=is_available
+    )

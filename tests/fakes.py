@@ -44,3 +44,19 @@ class FakeSnapshotRepository:
             if doc["_id"] == snapshot_id:
                 doc["check_id"] = check_id
                 break
+
+    def get_by_check_id(self, check_id: int) -> dict | None:
+        for doc in self.documents:
+            if doc.get("check_id") == check_id:
+                return doc
+        return None
+
+    def get_previous(self, domain_id: int, before: datetime) -> dict | None:
+        matching = [
+            doc
+            for doc in self.documents
+            if doc["domain_id"] == domain_id and doc["checked_at"] < before
+        ]
+        if not matching:
+            return None
+        return max(matching, key=lambda doc: doc["checked_at"])

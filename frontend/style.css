@@ -14,6 +14,11 @@
   box-sizing: border-box;
 }
 
+/* classes like .history-layout set display: flex, which would otherwise beat [hidden] */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -23,7 +28,7 @@ body {
 
 .topbar {
   padding: 32px 24px 16px;
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -42,7 +47,7 @@ body {
 }
 
 main {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px 48px;
   display: flex;
@@ -205,4 +210,319 @@ th {
 .toast.error {
   border-color: var(--bad);
   color: var(--bad);
+}
+
+.badge-button {
+  border: none;
+  cursor: pointer;
+}
+
+.badge-button:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+
+.defacement {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.defacement-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.defacement-meta strong {
+  color: var(--text);
+}
+
+.diff {
+  font-size: 14px;
+  line-height: 1.7;
+  word-break: break-word;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.diff-equal {
+  color: var(--text-dim);
+}
+
+.diff-removed {
+  background: rgba(239, 91, 91, 0.2);
+  color: var(--bad);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.diff-added {
+  background: rgba(62, 207, 142, 0.2);
+  color: var(--ok);
+  text-decoration: none;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.diff-row td {
+  white-space: normal;
+  background: var(--bg);
+}
+
+.diff-row .defacement {
+  margin-bottom: 0;
+}
+
+.history-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.calendar {
+  flex: 0 0 300px;
+}
+
+.history-day {
+  flex: 1;
+  min-width: 0; /* let the table scroll horizontally instead of stretching the panel */
+}
+
+@media (max-width: 720px) {
+  .history-layout {
+    flex-direction: column;
+  }
+
+  .calendar {
+    flex-basis: auto;
+    width: 100%;
+  }
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.calendar-nav span {
+  display: inline-block;
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.calendar-nav span::first-letter,
+.day-title::first-letter {
+  text-transform: uppercase;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-weekdays span {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  padding-bottom: 4px;
+}
+
+.calendar-grid .empty,
+.calendar-grid .error {
+  grid-column: 1 / -1;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.calendar-day.blank {
+  visibility: hidden;
+}
+
+.calendar-day.no-data {
+  color: var(--text-dim);
+  opacity: 0.5;
+  cursor: default;
+}
+
+.calendar-day .day-count {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.calendar-day.status-ok {
+  background: rgba(62, 207, 142, 0.15);
+  color: var(--ok);
+}
+
+.calendar-day.status-warn {
+  background: rgba(245, 166, 35, 0.15);
+  color: var(--warn);
+}
+
+.calendar-day.status-bad {
+  background: rgba(239, 91, 91, 0.15);
+  color: var(--bad);
+}
+
+.calendar-day.today {
+  border-color: var(--text-dim);
+}
+
+.calendar-day.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.day-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.calendar .legend {
+  margin-top: 12px;
+}
+
+/* Domains table: fits inside the panel without horizontal scrolling */
+#domains-table td {
+  white-space: normal;
+  vertical-align: middle;
+}
+
+#domains-table .domain-cell {
+  word-break: break-all;
+}
+
+.domain-url {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+#domains-table .badge {
+  white-space: nowrap;
+}
+
+#domains-table .row-actions {
+  flex-wrap: nowrap;
+}
+
+#domains-table .actions-cell {
+  width: 1%; /* shrink-to-fit: the column takes exactly the width of its buttons */
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  /* collapse each domain row into a card with "label: value" lines */
+  #domains-table thead {
+    display: none;
+  }
+
+  #domains-table,
+  #domains-table tbody,
+  #domains-table tr,
+  #domains-table td {
+    display: block;
+    width: 100%;
+  }
+
+  #domains-table tr {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+  }
+
+  #domains-table td {
+    border-bottom: none;
+    padding: 4px 0;
+  }
+
+  #domains-table td[data-label] {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  #domains-table td[data-label]::before {
+    content: attr(data-label);
+    color: var(--text-dim);
+  }
+
+  #domains-table .domain-cell {
+    font-weight: 600;
+  }
+
+  #domains-table .actions-cell {
+    width: 100%;
+    padding-top: 8px;
+  }
+
+  #domains-table .row-actions {
+    justify-content: flex-start;
+  }
+
+  #domains-table .row-actions button {
+    flex: 1;
+  }
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.tab {
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: 8px 8px 0 0;
+  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+}
+
+.tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+#outages-table .outage-reason {
+  white-space: normal;
+  word-break: break-word;
+  color: var(--text-dim);
 }

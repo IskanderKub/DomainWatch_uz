@@ -41,3 +41,61 @@ def test_trigger_check_returns_result(client, mocker):
 def test_list_checks_for_missing_domain_returns_404(client):
     response = client.get("/api/v1/domains/999/checks")
     assert response.status_code == 404
+
+
+def test_list_defacements_for_missing_domain_returns_404(client):
+    response = client.get("/api/v1/domains/999/defacements")
+    assert response.status_code == 404
+
+
+def test_list_checks_filters_by_time_window(client, db_session):
+    created = client.post(
+        "/api/v1/domains", json={"name": "example.uz", "url": "https://example.uz"}
+    ).json()
+    for day in (1, 2, 3):
+        db_session.add(
+            CheckResult(
+                domain_id=created["id"],
+                checked_at=datetime(2026, 10, day, 12, tzinfo=timezone.utc),
+                is_available=True,
+                is_suspected_defacement=False,
+            )
+        )
+    db_session.commit()
+
+    response = client.get(
+        f"/api/v1/domains/{created['id']}/checks",
+        params={"since": "2026-10-02T00:00:00Z", "until": "2026-10-03T00:00:00Z"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["checked_at"].startswith("2026-10-02")
+
+
+def test_list_checks_filters_by_availability(client, db_session):
+    created = client.post(
+        "/api/v1/domains", json={"name": "example.uz", "url": "https://example.uz"}
+    ).json()
+    db_session.add_all(
+        [
+            CheckResult(domain_id=created["id"], is_available=True, status_code=200),
+            CheckResult(
+                domain_id=created["id"],
+                is_available=False,
+                status_code=None,
+                error_message="timeout",
+            ),
+        ]
+    )
+    db_session.commit()
+
+    response = client.get(
+        f"/api/v1/domains/{created['id']}/checks", params={"is_available": "false"}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["error_message"] == "timeout"

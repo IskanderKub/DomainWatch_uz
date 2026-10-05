@@ -53,3 +53,13 @@ class SnapshotRepository:
         return self.collection.find_one(
             {"domain_id": domain_id}, sort=[("last_seen_at", -1)]
         )
+
+    def get_by_check_id(self, check_id: int) -> dict | None:
+        return self.collection.find_one({"check_id": check_id})
+
+    def get_previous(self, domain_id: int, before: datetime) -> dict | None:
+        # the snapshot that was current right before the given one was inserted
+        return self.collection.find_one(
+            {"domain_id": domain_id, "checked_at": {"$lt": before}},
+            sort=[("checked_at", -1)],
+        )
