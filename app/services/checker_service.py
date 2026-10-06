@@ -15,7 +15,16 @@ from app.repositories.snapshot_repository import SnapshotRepository
 logger = logging.getLogger(__name__)
 
 
-def _extract_text(html: str) -> str:
+def _response_html(response: requests.Response) -> str | bytes:
+    # without a charset in Content-Type, requests falls back to ISO-8859-1 and garbles
+    # Cyrillic pages - hand BeautifulSoup the raw bytes instead, so it honours
+    # <meta charset> (or sniffs the encoding itself)
+    if "charset" in response.headers.get("Content-Type", "").lower():
+        return response.text
+    return response.content
+
+
+def _extract_text(html: str | bytes) -> str:
     # strip tags/scripts/styles down to plain visible text, so markup churn
     # (e.g. a rebuilt <div> with the same content) doesn't look like a content change
     soup = BeautifulSoup(html, "html.parser")
@@ -23,8 +32,31 @@ def _extract_text(html: str) -> str:
 
 
 def _similarity(old_text: str, new_text: str) -> float:
-    # ratio() returns 0..1, where 1.0 means the texts are identical
-    return difflib.SequenceMatcher(None, old_text, new_text).ratio()
+    # unchanged pages are the common case - skip the quadratic matcher entirely
+    if old_text == new_text:
+        return 1.0
+    # ratio() returns 0..1, where 1.0 means the texts are identical. Compared word by
+    # word (like the defacement diff): char-level matching took seconds on large pages
+    return difflib.SequenceMatcher(
+        None, old_text.split(), new_text.split(), autojunk=False
+    ).ratio()
+
+
+def _log_check(domain: Domain, check: CheckResult) -> None:
+    if not check.is_available:
+        reason = check.error_message or f"HTTP {check.status_code}"
+        logger.warning("Domain %s is unavailable: %s", domain.name, reason)
+    elif check.is_suspected_defacement:
+        logger.warning(
+            "Suspected defacement on %s: similarity %.2f", domain.name, check.similarity_ratio
+        )
+    else:
+        logger.info(
+            "Domain %s is up: HTTP %s in %.0f ms",
+            domain.name,
+            check.status_code,
+            check.response_time_ms,
+        )
 
 
 class CheckerService:
@@ -43,13 +75,18 @@ class CheckerService:
         started_at = time.monotonic()
         snapshot_id = None
         try:
-            response = requests.get(domain.url, timeout=settings.check_timeout_seconds)
+            response = requests.get(
+                domain.url,
+                timeout=settings.check_timeout_seconds,
+                # some sites (e.g. Wikipedia) answer 403 to the default python-requests UA
+                headers={"User-Agent": settings.user_agent},
+            )
             response_time_ms = (time.monotonic() - started_at) * 1000
 
             similarity_ratio = None
             is_suspected_defacement = False
             if response.ok:
-                text_content = _extract_text(response.text)
+                text_content = _extract_text(_response_html(response))
                 try:
                     previous_snapshot = self.snapshot_repository.get_latest(domain.id)
                     if previous_snapshot is not None:
@@ -90,6 +127,7 @@ class CheckerService:
             )
 
         check = self.check_repository.create(check)
+        _log_check(domain, check)
 
         if snapshot_id is not None:
             try:

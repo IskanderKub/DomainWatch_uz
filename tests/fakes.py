@@ -42,7 +42,7 @@ class FakeSnapshotRepository:
     def attach_check_id(self, snapshot_id: int, check_id: int) -> None:
         for doc in self.documents:
             if doc["_id"] == snapshot_id:
-                doc["check_id"] = check_id
+                doc.setdefault("check_id", check_id)
                 break
 
     def get_by_check_id(self, check_id: int) -> dict | None:

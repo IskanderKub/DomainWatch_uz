@@ -23,6 +23,7 @@ class StatsService:
                 uptime_percent=0.0,
                 avg_response_time_ms=None,
                 last_check_at=None,
+                is_available_now=None,
                 suspected_defacements=0,
             )
 
@@ -56,5 +57,7 @@ class StatsService:
                 round(avg_response_time_ms, 2) if avg_response_time_ms is not None else None
             ),
             last_check_at=df["checked_at"].max(),
+            # list_for_domain returns checks newest first
+            is_available_now=checks[0].is_available,
             suspected_defacements=int(df["is_suspected_defacement"].sum()),
         )

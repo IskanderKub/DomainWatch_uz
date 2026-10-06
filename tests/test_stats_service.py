@@ -53,6 +53,8 @@ def test_get_domain_stats(db_session):
     # average of 100.0 and 200.0; the failed check's None is excluded
     assert stats.avg_response_time_ms == 150.0
     assert stats.suspected_defacements == 1
+    # the most recent check (the timeout) decides the current state
+    assert stats.is_available_now is False
 
 
 def test_get_domain_stats_no_checks(db_session):

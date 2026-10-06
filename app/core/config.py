@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     content_change_threshold: float = 0.4  # similarity below this vs previous snapshot => suspected defacement
     check_interval_minutes: int = 60  # how often the scheduler re-checks all active domains
     snapshot_ttl_days: int = 30 # how long page snapshots are kept before Mongo expires them
+    user_agent: str = "DomainWatch.uz/1.0 (website availability monitor)"
 
     # env_file tells pydantic-settings to also read values from a local .env file
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")

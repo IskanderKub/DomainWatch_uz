@@ -20,6 +20,7 @@ def check_all_active_domains() -> None:
     db = SessionLocal()
     try:
         domains = DomainService(db).list_domains(active_only=True)
+        logger.info("Scheduled run: checking %d active domains", len(domains))
         checker = CheckerService(db)
         for domain in domains:
             try:

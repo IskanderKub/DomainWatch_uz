@@ -44,7 +44,10 @@ async function apiRequest(path, options = {}) {
     let detail = response.statusText;
     try {
       const body = await response.json();
-      detail = body.detail || detail;
+      // FastAPI validation errors (422) carry a list of {loc, msg, ...} objects
+      detail = Array.isArray(body.detail)
+        ? body.detail.map((item) => item.msg).join("; ")
+        : body.detail || detail;
     } catch {
       // response had no JSON body - keep statusText
     }
@@ -109,13 +112,15 @@ async function loadDomains() {
 
 function renderRow(domain, stats) {
   const hasChecks = stats && stats.total_checks > 0;
+  // current state comes from the latest check; uptime only decides whether an
+  // online domain has been flaky recently
   const statusBadge = !hasChecks
     ? badge("нет данных", "neutral")
+    : !stats.is_available_now
+    ? badge("offline", "bad")
     : stats.uptime_percent >= 99.9
     ? badge("online", "ok")
-    : stats.uptime_percent > 0
-    ? badge("нестабильно", "warn")
-    : badge("offline", "bad");
+    : badge("нестабильно", "warn");
 
   const defacementBadge = hasChecks && stats.suspected_defacements > 0
     ? `<button class="badge badge-bad badge-button" data-action="defacements" data-id="${domain.id}" data-name="${escapeHtml(domain.name)}">${stats.suspected_defacements} ${pluralRu(stats.suspected_defacements, "изменение", "изменения", "изменений")}</button>`

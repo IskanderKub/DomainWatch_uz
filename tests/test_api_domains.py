@@ -38,3 +38,9 @@ def test_list_and_delete_domain(client):
     delete_response = client.delete(f"/api/v1/domains/{created['id']}")
     assert delete_response.status_code == 204
     assert client.get(f"/api/v1/domains/{created['id']}").status_code == 404
+
+
+def test_create_domain_rejects_url_without_scheme(client):
+    response = client.post("/api/v1/domains", json={"name": "example.uz", "url": "example.uz"})
+
+    assert response.status_code == 422

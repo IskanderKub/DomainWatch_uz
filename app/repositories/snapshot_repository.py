@@ -43,8 +43,11 @@ class SnapshotRepository:
         return result.inserted_id
 
     def attach_check_id(self, snapshot_id: ObjectId, check_id: int) -> None:
+        # only the check that first produced this content gets linked: later checks
+        # that see the same content reuse the snapshot (see save), and overwriting
+        # check_id would orphan the defacement diff of the original check
         self.collection.update_one(
-            {"_id": snapshot_id},
+            {"_id": snapshot_id, "check_id": {"$exists": False}},
             {"$set": {"check_id": check_id}},
         )
 
