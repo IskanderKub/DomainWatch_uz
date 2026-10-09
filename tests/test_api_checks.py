@@ -28,7 +28,7 @@ def test_trigger_check_returns_result(client, mocker):
         status_code=200,
         response_time_ms=123.4,
         similarity_ratio=0.99,
-        is_suspected_defacement=False,
+        has_global_changes=False,
     )
     mocker.patch.object(CheckerService, "check_domain", return_value=fake_result)
 
