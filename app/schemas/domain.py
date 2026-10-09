@@ -47,4 +47,4 @@ class DomainStats(BaseModel):
     # result of the most recent check, so the UI can show the current state
     # rather than one derived from the whole history's uptime
     is_available_now: bool | None
-    suspected_defacements: int
+    global_changes: int

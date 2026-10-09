@@ -54,8 +54,15 @@ class CheckResult(Base):
     # similarity_ratio: text similarity (0..1) vs the previous snapshot, from difflib.
     # None on the very first check for a domain, since there's nothing to compare against.
     similarity_ratio = Column(Float, nullable=True)
-    is_suspected_defacement = Column(Boolean, default=False, nullable=False)
+    # True when more than CONTENT_CHANGE_THRESHOLD of the page text changed at once.
+    # Deliberately not called "defacement": the metric measures how much changed, not
+    # whether the change was malicious - a redesign trips it, a one-line injection does not.
+    has_global_changes = Column(Boolean, default=False, nullable=False)
 
     error_message = Column(String, nullable=True)  # set when the request itself failed
+
+    # "live" - performed by DomainWatch itself; "archive" - imported from the
+    # Wayback Machine for the time before the domain was added to monitoring
+    source = Column(String, default="live", server_default="live", nullable=False)
 
     domain = relationship("Domain", back_populates="checks")

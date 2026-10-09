@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import router as api_v1_router
+from app.core.migrations import upgrade_schema
 from app.core.postgres import Base, engine
 from app.core.mongo import ensure_indexes, ensure_schema_validator, mongo_client
 from app.core.scheduler import start_scheduler, stop_scheduler
@@ -23,6 +24,7 @@ async def lifespan(app: FastAPI):
     # create_all is idempotent (no-op for tables that already exist) - fine for a
     # pet project; a production service would use Alembic migrations instead
     Base.metadata.create_all(bind=engine)
+    upgrade_schema(engine)
     ensure_indexes()
     ensure_schema_validator()
     start_scheduler()

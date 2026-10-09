@@ -49,11 +49,11 @@ def test_list_for_domain_returns_only_suspected_checks_with_diff(db_session):
     now = datetime.now(timezone.utc)
     ok_check = CheckResult(
         domain_id=domain.id, checked_at=now - timedelta(minutes=5),
-        is_available=True, is_suspected_defacement=False,
+        is_available=True, has_global_changes=False,
     )
     bad_check = CheckResult(
         domain_id=domain.id, checked_at=now, is_available=True,
-        similarity_ratio=0.2, is_suspected_defacement=True,
+        similarity_ratio=0.2, has_global_changes=True,
     )
     db_session.add_all([ok_check, bad_check])
     db_session.commit()
@@ -76,7 +76,7 @@ def test_list_for_domain_without_snapshots_returns_null_diff(db_session):
     db_session.add(domain)
     db_session.commit()
     db_session.add(
-        CheckResult(domain_id=domain.id, is_available=True, is_suspected_defacement=True)
+        CheckResult(domain_id=domain.id, is_available=True, has_global_changes=True)
     )
     db_session.commit()
 

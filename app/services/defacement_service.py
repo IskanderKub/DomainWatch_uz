@@ -63,7 +63,7 @@ class DefacementService:
     ) -> list[DefacementRead]:
         query = self.db.query(CheckResult).filter(
             CheckResult.domain_id == domain_id,
-            CheckResult.is_suspected_defacement.is_(True),
+            CheckResult.has_global_changes.is_(True),
         )
         if since is not None:
             query = query.filter(CheckResult.checked_at >= since)
@@ -75,6 +75,7 @@ class DefacementService:
                 check_id=check.id,
                 checked_at=check.checked_at,
                 similarity_ratio=check.similarity_ratio,
+                source=check.source,
                 diff=self._diff_for_check(check),
             )
             for check in checks

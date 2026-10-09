@@ -23,7 +23,12 @@ class SnapshotRepository:
         content_hash = _content_hash(text_content)
         previous = self.get_latest(domain_id)
 
-        if previous is not None and previous.get("content_hash") == content_hash:
+        # archive snapshots are never reused: a re-import deletes them (see delete_archived)
+        if (
+            previous is not None
+            and previous.get("content_hash") == content_hash
+            and previous.get("source") != "archive"
+        ):
             self.collection.update_one(
                 {"_id": previous["_id"]},
                 {"$set": {"last_seen_at": now}, "$inc": {"seen_count": 1}},
@@ -42,13 +47,35 @@ class SnapshotRepository:
         )
         return result.inserted_id
 
+    def insert_archived(
+        self, domain_id: int, text_content: str, captured_at: datetime, check_id: int
+    ) -> ObjectId:
+        # last_seen_at is the capture time, so the TTL index expires it like any
+        # snapshot that was last seen back then
+        result = self.collection.insert_one(
+            {
+                "domain_id": domain_id,
+                "checked_at": captured_at,
+                "last_seen_at": captured_at,
+                "text_content": text_content,
+                "content_hash": _content_hash(text_content),
+                "seen_count": 1,
+                "check_ids": [check_id],
+                "source": "archive",
+            }
+        )
+        return result.inserted_id
+
+    def delete_archived(self, domain_id: int) -> None:
+        self.collection.delete_many({"domain_id": domain_id, "source": "archive"})
+
     def attach_check_id(self, snapshot_id: ObjectId, check_id: int) -> None:
-        # only the check that first produced this content gets linked: later checks
-        # that see the same content reuse the snapshot (see save), and overwriting
-        # check_id would orphan the defacement diff of the original check
+        # checks that see unchanged content reuse the same snapshot (see save), so it
+        # collects every check id - overwriting a single one would leave the earlier
+        # checks (including the one that flagged global changes) without a snapshot
         self.collection.update_one(
-            {"_id": snapshot_id, "check_id": {"$exists": False}},
-            {"$set": {"check_id": check_id}},
+            {"_id": snapshot_id},
+            {"$addToSet": {"check_ids": check_id}},
         )
 
     def get_latest(self, domain_id: int) -> dict | None:
@@ -58,7 +85,10 @@ class SnapshotRepository:
         )
 
     def get_by_check_id(self, check_id: int) -> dict | None:
-        return self.collection.find_one({"check_id": check_id})
+        # check_id is the single-link field used by snapshots saved before check_ids
+        return self.collection.find_one(
+            {"$or": [{"check_ids": check_id}, {"check_id": check_id}]}
+        )
 
     def get_previous(self, domain_id: int, before: datetime) -> dict | None:
         # the snapshot that was current right before the given one was inserted

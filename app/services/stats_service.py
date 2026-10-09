@@ -12,7 +12,11 @@ class StatsService:
         self.check_repository = check_repository or CheckRepository(db)
 
     def get_domain_stats(self, domain_id: int, limit: int = 1000) -> DomainStats:
-        checks = self.check_repository.list_for_domain(domain_id, limit=limit)
+        # uptime and response time describe our own monitoring only: an archive capture
+        # says nothing about response time, and the archive crawls too rarely for uptime.
+        # Content changes found in the archive are real changes, so they are counted.
+        checks = self.check_repository.list_for_domain(domain_id, limit=limit, source="live")
+        global_changes = self.check_repository.count_global_changes(domain_id)
 
         if not checks:
             # domain has never been checked yet - return zeroed-out stats instead of
@@ -24,7 +28,7 @@ class StatsService:
                 avg_response_time_ms=None,
                 last_check_at=None,
                 is_available_now=None,
-                suspected_defacements=0,
+                global_changes=global_changes,
             )
 
         # load check rows into a DataFrame so pandas can do the aggregation
@@ -33,7 +37,6 @@ class StatsService:
                 {
                     "is_available": c.is_available,
                     "response_time_ms": c.response_time_ms,
-                    "is_suspected_defacement": c.is_suspected_defacement,
                     "checked_at": c.checked_at,
                 }
                 for c in checks
@@ -59,5 +62,5 @@ class StatsService:
             last_check_at=df["checked_at"].max(),
             # list_for_domain returns checks newest first
             is_available_now=checks[0].is_available,
-            suspected_defacements=int(df["is_suspected_defacement"].sum()),
+            global_changes=global_changes,
         )

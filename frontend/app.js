@@ -80,6 +80,11 @@ function badge(text, kind) {
   return `<span class="badge badge-${kind}">${text}</span>`;
 }
 
+// marks rows imported from the Wayback Machine rather than checked by DomainWatch
+function archiveMark(item) {
+  return item.source === "archive" ? ` ${badge("архив", "neutral")}` : "";
+}
+
 async function loadDomains() {
   const domains = await apiRequest("/domains");
 
@@ -122,8 +127,10 @@ function renderRow(domain, stats) {
     ? badge("online", "ok")
     : badge("нестабильно", "warn");
 
-  const defacementBadge = hasChecks && stats.suspected_defacements > 0
-    ? `<button class="badge badge-bad badge-button" data-action="defacements" data-id="${domain.id}" data-name="${escapeHtml(domain.name)}">${stats.suspected_defacements} ${pluralRu(stats.suspected_defacements, "изменение", "изменения", "изменений")}</button>`
+  // changes also count the ones imported from the archive, so they can exist before
+  // the first live check
+  const defacementBadge = stats && stats.global_changes > 0
+    ? `<button class="badge badge-bad badge-button" data-action="defacements" data-id="${domain.id}" data-name="${escapeHtml(domain.name)}">${stats.global_changes} ${pluralRu(stats.global_changes, "изменение", "изменения", "изменений")}</button>`
     : badge("нет", "neutral");
 
   // data-label is shown as the field name when the table collapses into cards on narrow screens
@@ -303,7 +310,7 @@ function renderCalendar() {
       continue;
     }
 
-    const status = checks.some((c) => c.is_suspected_defacement)
+    const status = checks.some((c) => c.has_global_changes)
       ? "bad"
       : checks.some((c) => !c.is_available)
       ? "warn"
@@ -368,7 +375,7 @@ function shiftHistoryMonth(delta) {
 function renderHistoryRow(check, defacement) {
   const time = new Date(check.checked_at).toLocaleTimeString("ru-RU");
   const availableBadge = check.is_available ? badge("да", "ok") : badge("нет", "bad");
-  const defacementBadge = !check.is_suspected_defacement
+  const defacementBadge = !check.has_global_changes
     ? badge("нет", "neutral")
     : defacement
     ? `<button class="badge badge-bad badge-button" data-toggle-diff="${check.id}">изменение ▾</button>`
@@ -377,7 +384,7 @@ function renderHistoryRow(check, defacement) {
 
   return `
     <tr>
-      <td>${time}</td>
+      <td>${time}${archiveMark(check)}</td>
       <td>${availableBadge}</td>
       <td>${check.status_code ?? "—"}</td>
       <td>${formatMs(check.response_time_ms)}</td>
@@ -447,7 +454,7 @@ function renderOutageRow(check) {
 
   return `
     <tr>
-      <td>${time}</td>
+      <td>${time}${archiveMark(check)}</td>
       <td>${check.status_code ? badge(check.status_code, "bad") : "—"}</td>
       <td class="outage-reason">${reason}</td>
     </tr>
@@ -464,7 +471,7 @@ function renderDefacement(item) {
   return `
     <div class="defacement">
       <div class="defacement-meta">
-        <span>Добавлено: <strong>${time}</strong></span>
+        <span>Добавлено: <strong>${time}</strong>${archiveMark(item)}</span>
         <span>Схожесть: <strong>${similarity}</strong></span>
       </div>
       ${diff}
