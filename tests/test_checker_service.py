@@ -154,7 +154,9 @@ def test_change_percent_is_the_inverse_of_similarity(db_session, mocker):
     read = CheckResultRead.model_validate(result)
 
     assert read.change_percent == round((1 - result.similarity_ratio) * 100, 1)
-    assert read.has_global_changes == (read.change_percent > 60)
+    assert read.has_global_changes == (
+        result.similarity_ratio < settings.content_change_threshold
+    )
 
 
 def test_change_percent_is_none_on_the_first_check(db_session, mocker):
