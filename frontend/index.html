@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DomainWatch.uz</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>DomainWatch<span class="accent">.uz</span></h1>
+    <p class="subtitle">Мониторинг доступности и детекция подмены контента</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Добавить домен</h2>
+      <form id="add-domain-form" class="add-form">
+        <input type="text" id="domain-name" placeholder="example.uz" required />
+        <input type="url" id="domain-url" placeholder="https://example.uz" required />
+        <button type="submit">Добавить</button>
+      </form>
+      <p id="add-error" class="error" hidden></p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Домены</h2>
+        <button id="refresh-btn" class="secondary">Обновить</button>
+      </div>
+      <p id="domains-empty" class="empty" hidden>Пока нет ни одного домена — добавьте первый выше.</p>
+      <table id="domains-table" hidden>
+        <thead>
+          <tr>
+            <th>Домен</th>
+            <th>Статус</th>
+            <th>Uptime</th>
+            <th>Ср. отклик</th>
+            <th>Изменения</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="domains-body"></tbody>
+      </table>
+    </section>
+
+    <section class="panel" id="history-panel" hidden>
+      <div class="panel-header">
+        <h2 id="history-title">История проверок</h2>
+        <button id="history-close" class="secondary">Закрыть</button>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="calendar">Календарь</button>
+        <button class="tab" data-tab="changes">Все изменения</button>
+        <button class="tab" data-tab="outages">Были недоступны</button>
+      </div>
+      <div id="tab-outages" hidden>
+        <p id="outages-empty" class="empty" hidden></p>
+        <div class="table-wrap">
+          <table id="outages-table" hidden>
+            <thead>
+              <tr>
+                <th>Время</th>
+                <th>Код</th>
+                <th>Причина</th>
+              </tr>
+            </thead>
+            <tbody id="outages-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="tab-changes" hidden>
+        <p class="legend">
+          <span class="diff-removed">удалено</span>
+          <span class="diff-added">добавлено</span>
+        </p>
+        <div id="defacements-body"></div>
+      </div>
+      <div id="tab-calendar" class="history-layout">
+        <div class="calendar">
+          <div class="calendar-nav">
+            <button id="calendar-prev" class="small secondary" aria-label="Предыдущий месяц">‹</button>
+            <span id="calendar-month"></span>
+            <button id="calendar-next" class="small secondary" aria-label="Следующий месяц">›</button>
+            <button id="calendar-today" class="small secondary">Этот месяц</button>
+          </div>
+          <div class="calendar-weekdays">
+            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+          </div>
+          <div id="calendar-grid" class="calendar-grid"></div>
+          <p class="legend">
+            <span class="badge badge-ok">все проверки ок</span>
+            <span class="badge badge-warn">были недоступности</span>
+            <span class="badge badge-bad">были изменения</span>
+          </p>
+        </div>
+        <div class="history-day">
+          <h3 id="day-title" class="day-title"></h3>
+          <p id="day-empty" class="empty" hidden></p>
+          <div class="table-wrap">
+            <table id="history-table" hidden>
+              <thead>
+                <tr>
+                  <th>Время</th>
+                  <th>Доступен</th>
+                  <th>Код</th>
+                  <th>Отклик, мс</th>
+                  <th>Схожесть</th>
+                  <th>Изменения</th>
+                </tr>
+              </thead>
+              <tbody id="history-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

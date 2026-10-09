@@ -9,6 +9,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.api.deps import get_db
 from app.api.v1 import router as api_v1_router
+from app.core.config import settings
 from app.core.postgres import Base
 
 # StaticPool + check_same_thread=False: keep a single SQLite in-memory connection
@@ -30,6 +31,13 @@ def _tables():
     Base.metadata.drop_all(bind=test_engine)
 
 
+@pytest.fixture(autouse=True)
+def _no_archive_import(monkeypatch):
+    # the import runs as a background task with its own session from .env - in tests
+    # it would query the real Wayback Machine and write to the developer's database
+    monkeypatch.setattr(settings, "archive_import_on_create", False)
+
+
 @pytest.fixture
 def db_session():
     session = TestSessionLocal()
@@ -49,5 +57,3 @@ def client(db_session):
 
     with TestClient(app) as test_client:
         yield test_client
-
-

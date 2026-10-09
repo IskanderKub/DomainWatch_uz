@@ -15,6 +15,7 @@ snapshots_collection = mongo_db["snapshots"]
 
 def ensure_indexes():
     snapshots_collection.create_index([("domain_id", 1), ("last_seen_at", -1)])
+    snapshots_collection.create_index("check_ids")
     snapshots_collection.create_index(
         "last_seen_at",
         expireAfterSeconds=settings.snapshot_ttl_days * 24 * 60 * 60,

@@ -1,7 +1,8 @@
 # Pydantic schemas for domain-related API requests/responses.
 from datetime import datetime
+from urllib.parse import urlparse
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class DomainCreate(BaseModel):
@@ -9,6 +10,17 @@ class DomainCreate(BaseModel):
 
     name: str
     url: str
+
+    @field_validator("url")
+    @classmethod
+    def url_must_be_http(cls, url: str) -> str:
+        # without this, "example.uz" is stored as-is and every check fails with
+        # "No scheme supplied", which looks like the site being down
+        url = url.strip()
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise ValueError("URL must start with http:// or https://, e.g. https://example.uz")
+        return url
 
 
 class DomainRead(BaseModel):
@@ -32,4 +44,7 @@ class DomainStats(BaseModel):
     uptime_percent: float
     avg_response_time_ms: float | None
     last_check_at: datetime | None
+    # result of the most recent check, so the UI can show the current state
+    # rather than one derived from the whole history's uptime
+    is_available_now: bool | None
     global_changes: int

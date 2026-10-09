@@ -16,6 +16,7 @@ class CheckResultRead(BaseModel):
     similarity_ratio: float | None
     has_global_changes: bool
     error_message: str | None
+    source: str  # "live" | "archive" (imported from the Wayback Machine)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -38,3 +39,21 @@ class SnapshotRead(BaseModel):
     domain_id: int
     checked_at: datetime
     text_content: str
+
+
+class DiffSegment(BaseModel):
+    """A run of words that was kept, removed or added between two snapshots."""
+
+    op: str  # "equal" | "removed" | "added"
+    text: str
+
+
+class DefacementRead(BaseModel):
+    """A check flagged with has_global_changes, together with what changed on the page."""
+
+    check_id: int
+    checked_at: datetime
+    similarity_ratio: float | None
+    source: str  # "live" | "archive"
+    # None when the snapshots needed for the diff are gone (TTL) or Mongo is unreachable
+    diff: list[DiffSegment] | None

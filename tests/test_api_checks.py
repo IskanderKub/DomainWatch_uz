@@ -29,6 +29,7 @@ def test_trigger_check_returns_result(client, mocker):
         response_time_ms=123.4,
         similarity_ratio=0.99,
         has_global_changes=False,
+        source="live",
     )
     mocker.patch.object(CheckerService, "check_domain", return_value=fake_result)
 
@@ -79,3 +80,61 @@ def test_get_check_snapshot(client, db_session, monkeypatch):
     data = response.json()
     assert data["check_id"] == check.id
     assert data["text_content"] == "Hello World"
+
+
+def test_list_defacements_for_missing_domain_returns_404(client):
+    response = client.get("/api/v1/domains/999/defacements")
+    assert response.status_code == 404
+
+
+def test_list_checks_filters_by_time_window(client, db_session):
+    created = client.post(
+        "/api/v1/domains", json={"name": "example.uz", "url": "https://example.uz"}
+    ).json()
+    for day in (1, 2, 3):
+        db_session.add(
+            CheckResult(
+                domain_id=created["id"],
+                checked_at=datetime(2026, 10, day, 12, tzinfo=timezone.utc),
+                is_available=True,
+                has_global_changes=False,
+            )
+        )
+    db_session.commit()
+
+    response = client.get(
+        f"/api/v1/domains/{created['id']}/checks",
+        params={"since": "2026-10-02T00:00:00Z", "until": "2026-10-03T00:00:00Z"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["checked_at"].startswith("2026-10-02")
+
+
+def test_list_checks_filters_by_availability(client, db_session):
+    created = client.post(
+        "/api/v1/domains", json={"name": "example.uz", "url": "https://example.uz"}
+    ).json()
+    db_session.add_all(
+        [
+            CheckResult(domain_id=created["id"], is_available=True, status_code=200),
+            CheckResult(
+                domain_id=created["id"],
+                is_available=False,
+                status_code=None,
+                error_message="timeout",
+            ),
+        ]
+    )
+    db_session.commit()
+
+    response = client.get(
+        f"/api/v1/domains/{created['id']}/checks", params={"is_available": "false"}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["error_message"] == "timeout"

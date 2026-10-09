@@ -6,16 +6,19 @@ from app.core.config import settings
 from app.models.sql_models import Domain
 from app.schemas.check import CheckResultRead
 from app.services.checker_service import CheckerService
+from app.services.defacement_service import DefacementService
 from tests.fakes import FakeSnapshotRepository
 
 
 class FakeResponse:
     """Minimal stand-in for requests.Response, only the attributes checker_service reads."""
 
-    def __init__(self, status_code=200, text="", ok=True):
+    def __init__(self, status_code=200, text="", ok=True, headers=None, content=None):
         self.status_code = status_code
         self.text = text
         self.ok = ok
+        self.headers = headers or {"Content-Type": "text/html; charset=utf-8"}
+        self.content = content if content is not None else text.encode()
 
 
 def _make_domain(db_session) -> Domain:
@@ -174,3 +177,74 @@ def test_change_percent_is_none_on_the_first_check(db_session, mocker):
 
     assert result.similarity_ratio is None
     assert read.change_percent is None
+
+
+def test_check_domain_decodes_page_without_charset_header(db_session, mocker):
+    # no charset in Content-Type: requests would decode as ISO-8859-1 and garble
+    # Cyrillic, so the encoding must come from <meta charset> instead
+    domain = _make_domain(db_session)
+    html = '<html><head><meta charset="utf-8"></head><body>Министерство финансов</body></html>'
+    mocker.patch(
+        "app.services.checker_service.requests.get",
+        return_value=FakeResponse(
+            text=html.encode().decode("iso-8859-1"),
+            headers={"Content-Type": "text/html"},
+            content=html.encode(),
+        ),
+    )
+    snapshot_repo = FakeSnapshotRepository()
+    service = CheckerService(db_session, snapshot_repository=snapshot_repo)
+
+    service.check_domain(domain)
+
+    assert snapshot_repo.documents[0]["text_content"] == "Министерство финансов"
+
+
+def test_check_domain_sends_user_agent(db_session, mocker):
+    domain = _make_domain(db_session)
+    get = mocker.patch(
+        "app.services.checker_service.requests.get",
+        return_value=FakeResponse(text="<html><body>ok</body></html>"),
+    )
+    CheckerService(db_session, snapshot_repository=FakeSnapshotRepository()).check_domain(domain)
+
+    assert get.call_args.kwargs["headers"]["User-Agent"] == settings.user_agent
+
+
+def test_defacement_diff_survives_repeated_defaced_content(db_session, mocker):
+    # the defaced page staying up for another check reuses its snapshot - that must
+    # not unlink the snapshot from the check that originally flagged the global changes
+    domain = _make_domain(db_session)
+    get = mocker.patch("app.services.checker_service.requests.get")
+    snapshot_repo = FakeSnapshotRepository()
+    service = CheckerService(db_session, snapshot_repository=snapshot_repo)
+
+    get.return_value = FakeResponse(text="<html><body>Ministry of Finance of Uzbekistan</body></html>")
+    service.check_domain(domain)
+    get.return_value = FakeResponse(text="<html><body>HACKED BY ANONYMOUS</body></html>")
+    flagged = service.check_domain(domain)
+    service.check_domain(domain)
+
+    defacements = DefacementService(db_session, snapshot_repository=snapshot_repo).list_for_domain(
+        domain.id
+    )
+    assert [d.check_id for d in defacements] == [flagged.id]
+    assert defacements[0].diff is not None
+
+
+def test_every_check_of_unchanged_content_finds_its_snapshot(db_session, mocker):
+    # unchanged content reuses one snapshot - each check must still be able to fetch it
+    domain = _make_domain(db_session)
+    mocker.patch(
+        "app.services.checker_service.requests.get",
+        return_value=FakeResponse(text="<html><body>Ministry of Finance</body></html>"),
+    )
+    snapshot_repo = FakeSnapshotRepository()
+    service = CheckerService(db_session, snapshot_repository=snapshot_repo)
+
+    first = service.check_domain(domain)
+    second = service.check_domain(domain)
+
+    assert len(snapshot_repo.documents) == 1
+    assert snapshot_repo.get_by_check_id(first.id) is not None
+    assert snapshot_repo.get_by_check_id(second.id) is not None

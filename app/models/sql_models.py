@@ -61,4 +61,8 @@ class CheckResult(Base):
 
     error_message = Column(String, nullable=True)  # set when the request itself failed
 
+    # "live" - performed by DomainWatch itself; "archive" - imported from the
+    # Wayback Machine for the time before the domain was added to monitoring
+    source = Column(String, default="live", server_default="live", nullable=False)
+
     domain = relationship("Domain", back_populates="checks")

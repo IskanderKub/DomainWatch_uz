@@ -40,6 +40,8 @@ docker compose up --build
 
 API будет доступно на `http://localhost:8000`, документация — на `http://localhost:8000/docs`.
 
+Дашборд (простой HTML/CSS/JS, без сборки) открывается на `http://localhost:8000/` — добавление доменов, запуск проверок, статистика и история проверок. Файлы лежат в [frontend/](frontend/) и раздаются самим FastAPI через `StaticFiles`.
+
 ## Локальный запуск
 
 ```bash
@@ -71,5 +73,12 @@ pytest
 | POST | `/api/v1/domains/{id}/checks` | выполнить проверку вручную |
 | GET | `/api/v1/domains/{id}/checks` | история проверок |
 | GET | `/api/v1/domains/{id}/stats` | статистика (uptime%, среднее время ответа) |
+| GET | `/api/v1/domains/{id}/checks/{check_id}/snapshot` | текст страницы, полученный проверкой |
+| GET | `/api/v1/domains/{id}/defacements` | проверки с глобальными изменениями и дифф текста |
+| POST | `/api/v1/domains/{id}/archive-import` | заново импортировать историю из Wayback Machine |
 
 Активные домены проверяются автоматически каждые `CHECK_INTERVAL_MINUTES` минут (по умолчанию — раз в час).
+
+При добавлении домена в фоне импортируется его история из Wayback Machine за `ARCHIVE_BACKFILL_DAYS` дней (по умолчанию — год). Такие проверки помечены `source: "archive"`; в uptime и среднее время ответа они не входят, а найденные в них изменения учитываются. Отключить импорт: `ARCHIVE_IMPORT_ON_CREATE=false`.
+
+Схема существующей базы обновляется автоматически при старте (см. `app/core/migrations.py`).
