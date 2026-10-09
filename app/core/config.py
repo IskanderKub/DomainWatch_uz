@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     mongo_db_name: str = "domainwatch"
 
     check_timeout_seconds: int = 5  # how long to wait before treating a domain as unavailable
-    content_change_threshold: float = 0.4  # similarity below this vs previous snapshot => suspected defacement
+    content_change_threshold: float = 0.4  # similarity below this vs previous snapshot => has_global_changes
     check_interval_minutes: int = 60  # how often the scheduler re-checks all active domains
     snapshot_ttl_days: int = 30 # how long page snapshots are kept before Mongo expires them
 

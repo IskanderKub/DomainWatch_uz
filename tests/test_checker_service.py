@@ -4,6 +4,7 @@ import requests
 
 from app.core.config import settings
 from app.models.sql_models import Domain
+from app.schemas.check import CheckResultRead
 from app.services.checker_service import CheckerService
 from tests.fakes import FakeSnapshotRepository
 
@@ -40,14 +41,14 @@ def test_check_domain_first_check_has_no_similarity(db_session, mocker):
     assert result.is_available is True
     assert result.status_code == 200
     assert result.similarity_ratio is None
-    assert result.is_suspected_defacement is False
+    assert result.has_global_changes is False
     # HTML tags are stripped before saving the snapshot
     assert snapshot_repo.documents[0]["text_content"] == "Ministry of Finance"
 
 
-def test_check_domain_flags_defacement_on_drastic_change(db_session, mocker):
-    # simulates the classic defacement scenario from the spec: page content is
-    # replaced wholesale, so similarity should fall well below the threshold
+def test_check_domain_flags_global_change_on_drastic_rewrite(db_session, mocker):
+    # page content is replaced wholesale, so similarity should fall well below
+    # the threshold and the global-changes flag should trip
     domain = _make_domain(db_session)
     mocker.patch(
         "app.services.checker_service.requests.get",
@@ -60,12 +61,12 @@ def test_check_domain_flags_defacement_on_drastic_change(db_session, mocker):
     result = service.check_domain(domain)
 
     assert result.similarity_ratio < settings.content_change_threshold
-    assert result.is_suspected_defacement is True
+    assert result.has_global_changes is True
 
 
-def test_check_domain_no_defacement_on_minor_change(db_session, mocker):
+def test_check_domain_no_global_change_on_minor_edit(db_session, mocker):
     # a small edit to existing content should stay above the threshold and not
-    # be flagged as a suspected defacement
+    # be flagged as a global change
     domain = _make_domain(db_session)
     mocker.patch(
         "app.services.checker_service.requests.get",
@@ -80,7 +81,7 @@ def test_check_domain_no_defacement_on_minor_change(db_session, mocker):
     result = service.check_domain(domain)
 
     assert result.similarity_ratio >= settings.content_change_threshold
-    assert result.is_suspected_defacement is False
+    assert result.has_global_changes is False
 
 
 def test_check_domain_handles_request_failure(db_session, mocker):
@@ -135,3 +136,39 @@ def test_check_domain_skips_snapshot_on_error_status(db_session, mocker):
     assert result.status_code == 403
     assert result.similarity_ratio is None
     assert snapshot_repo.documents == []
+
+
+def test_change_percent_is_the_inverse_of_similarity(db_session, mocker):
+    # change_percent is derived from similarity_ratio, and has_global_changes
+    # should agree with it once expressed as a percentage
+    domain = _make_domain(db_session)
+    mocker.patch(
+        "app.services.checker_service.requests.get",
+        return_value=FakeResponse(text="<html><body>HACKED BY ANONYMOUS</body></html>"),
+    )
+    snapshot_repo = FakeSnapshotRepository()
+    snapshot_repo.save(domain.id, "Ministry of Finance of Uzbekistan")
+    service = CheckerService(db_session, snapshot_repository=snapshot_repo)
+
+    result = service.check_domain(domain)
+    read = CheckResultRead.model_validate(result)
+
+    assert read.change_percent == round((1 - result.similarity_ratio) * 100, 1)
+    assert read.has_global_changes == (read.change_percent > 60)
+
+
+def test_change_percent_is_none_on_the_first_check(db_session, mocker):
+    # first-ever check for a domain: there's nothing to compare against, so
+    # both similarity_ratio and change_percent should be None
+    domain = _make_domain(db_session)
+    mocker.patch(
+        "app.services.checker_service.requests.get",
+        return_value=FakeResponse(text="<html><body>Ministry of Finance</body></html>"),
+    )
+    service = CheckerService(db_session, snapshot_repository=FakeSnapshotRepository())
+
+    result = service.check_domain(domain)
+    read = CheckResultRead.model_validate(result)
+
+    assert result.similarity_ratio is None
+    assert read.change_percent is None

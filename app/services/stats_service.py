@@ -23,7 +23,7 @@ class StatsService:
                 uptime_percent=0.0,
                 avg_response_time_ms=None,
                 last_check_at=None,
-                suspected_defacements=0,
+                global_changes=0,
             )
 
         # load check rows into a DataFrame so pandas can do the aggregation
@@ -32,7 +32,7 @@ class StatsService:
                 {
                     "is_available": c.is_available,
                     "response_time_ms": c.response_time_ms,
-                    "is_suspected_defacement": c.is_suspected_defacement,
+                    "has_global_changes": c.has_global_changes,
                     "checked_at": c.checked_at,
                 }
                 for c in checks
@@ -56,5 +56,5 @@ class StatsService:
                 round(avg_response_time_ms, 2) if avg_response_time_ms is not None else None
             ),
             last_check_at=df["checked_at"].max(),
-            suspected_defacements=int(df["is_suspected_defacement"].sum()),
+            global_changes=int(df["has_global_changes"].sum()),
         )

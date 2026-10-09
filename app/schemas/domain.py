@@ -32,4 +32,4 @@ class DomainStats(BaseModel):
     uptime_percent: float
     avg_response_time_ms: float | None
     last_check_at: datetime | None
-    suspected_defacements: int
+    global_changes: int
