@@ -1,5 +1,154 @@
 const API_BASE = "/api/v1";
 
+// UI strings per language; functions take values that are interpolated into the text
+const I18N = {
+  ru: {
+    locale: "ru-RU",
+    subtitle: "Мониторинг доступности и детекция подмены контента",
+    addDomain: "Добавить домен",
+    add: "Добавить",
+    domains: "Домены",
+    refresh: "Обновить",
+    domainsEmpty: "Пока нет ни одного домена — добавьте первый выше.",
+    colDomain: "Домен",
+    colStatus: "Статус",
+    colUptime: "Uptime",
+    colAvgResponse: "Ср. отклик",
+    colChanges: "Изменения",
+    colTime: "Время",
+    colCode: "Код",
+    colReason: "Причина",
+    colAvailable: "Доступен",
+    colResponseMs: "Отклик, мс",
+    colSimilarity: "Схожесть",
+    history: "История проверок",
+    historyFor: (name) => `История проверок — ${name}`,
+    close: "Закрыть",
+    tabCalendar: "Календарь",
+    tabChanges: "Все изменения",
+    tabOutages: "Были недоступны",
+    removed: "удалено",
+    added: "добавлено",
+    prevMonth: "Предыдущий месяц",
+    nextMonth: "Следующий месяц",
+    thisMonth: "Этот месяц",
+    weekdays: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
+    legendOk: "все проверки ок",
+    legendWarn: "были недоступности",
+    legendBad: "были изменения",
+    ms: (value) => `${value} мс`,
+    archive: "архив",
+    noData: "нет данных",
+    unstable: "нестабильно",
+    yes: "да",
+    no: "нет",
+    changesCount: (n) => `${n} ${pluralRu(n, "изменение", "изменения", "изменений")}`,
+    change: "изменение",
+    check: "Проверить",
+    historyBtn: "История",
+    delete: "Удалить",
+    checkDone: "Проверка выполнена",
+    checkError: (msg) => `Ошибка проверки: ${msg}`,
+    confirmDelete: "Удалить домен и всю историю проверок?",
+    domainDeleted: "Домен удалён",
+    deleteError: (msg) => `Ошибка удаления: ${msg}`,
+    domainAdded: "Домен добавлен",
+    loading: "Загрузка…",
+    loadError: (msg) => `Ошибка загрузки: ${msg}`,
+    checksCount: (n) => `${n} ${pluralRu(n, "проверка", "проверки", "проверок")}`,
+    noChecksThisMonth: "В этом месяце проверок не было",
+    noChanges: "Изменений нет",
+    neverDown: "Сайт ни разу не был недоступен",
+    serverError: (code) => `Сервер ответил ошибкой ${code}`,
+    snapshotsUnavailable: "Снимки страницы недоступны — изменения показать нельзя",
+    detectedAt: "Добавлено",
+    similarity: "Схожесть",
+    domainsLoadError: (msg) => `Не удалось загрузить домены: ${msg}`,
+  },
+  en: {
+    locale: "en-GB",
+    subtitle: "Availability monitoring and content tampering detection",
+    addDomain: "Add domain",
+    add: "Add",
+    domains: "Domains",
+    refresh: "Refresh",
+    domainsEmpty: "No domains yet — add the first one above.",
+    colDomain: "Domain",
+    colStatus: "Status",
+    colUptime: "Uptime",
+    colAvgResponse: "Avg. response",
+    colChanges: "Changes",
+    colTime: "Time",
+    colCode: "Code",
+    colReason: "Reason",
+    colAvailable: "Available",
+    colResponseMs: "Response, ms",
+    colSimilarity: "Similarity",
+    history: "Check history",
+    historyFor: (name) => `Check history — ${name}`,
+    close: "Close",
+    tabCalendar: "Calendar",
+    tabChanges: "All changes",
+    tabOutages: "Outages",
+    removed: "removed",
+    added: "added",
+    prevMonth: "Previous month",
+    nextMonth: "Next month",
+    thisMonth: "This month",
+    weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+    legendOk: "all checks ok",
+    legendWarn: "had outages",
+    legendBad: "had changes",
+    ms: (value) => `${value} ms`,
+    archive: "archive",
+    noData: "no data",
+    unstable: "unstable",
+    yes: "yes",
+    no: "no",
+    changesCount: (n) => `${n} ${n === 1 ? "change" : "changes"}`,
+    change: "change",
+    check: "Check",
+    historyBtn: "History",
+    delete: "Delete",
+    checkDone: "Check completed",
+    checkError: (msg) => `Check failed: ${msg}`,
+    confirmDelete: "Delete the domain and its whole check history?",
+    domainDeleted: "Domain deleted",
+    deleteError: (msg) => `Delete failed: ${msg}`,
+    domainAdded: "Domain added",
+    loading: "Loading…",
+    loadError: (msg) => `Failed to load: ${msg}`,
+    checksCount: (n) => `${n} ${n === 1 ? "check" : "checks"}`,
+    noChecksThisMonth: "No checks this month",
+    noChanges: "No changes",
+    neverDown: "The site has never been unavailable",
+    serverError: (code) => `Server responded with error ${code}`,
+    snapshotsUnavailable: "Page snapshots are unavailable — changes can't be shown",
+    detectedAt: "Detected",
+    similarity: "Similarity",
+    domainsLoadError: (msg) => `Failed to load domains: ${msg}`,
+  },
+};
+
+const LANG_STORAGE_KEY = "domainwatch.lang";
+
+function loadSavedLang() {
+  try {
+    const saved = localStorage.getItem(LANG_STORAGE_KEY);
+    return saved in I18N ? saved : "ru";
+  } catch {
+    // storage can be blocked (private mode etc.) - fall back to the default
+    return "ru";
+  }
+}
+
+let currentLang = loadSavedLang();
+
+function t(key, ...args) {
+  const value = I18N[currentLang][key];
+  return typeof value === "function" ? value(...args) : value;
+}
+
 const domainsBody = document.getElementById("domains-body");
 const domainsTable = document.getElementById("domains-table");
 const domainsEmpty = document.getElementById("domains-empty");
@@ -24,6 +173,7 @@ const outagesTable = document.getElementById("outages-table");
 const outagesBody = document.getElementById("outages-body");
 const outagesEmpty = document.getElementById("outages-empty");
 const toast = document.getElementById("toast");
+const langButtons = document.querySelectorAll(".lang-switch [data-lang]");
 
 function showToast(message, isError = false) {
   toast.textContent = message;
@@ -59,7 +209,7 @@ async function apiRequest(path, options = {}) {
 
 function formatMs(ms) {
   if (ms === null || ms === undefined) return "—";
-  return `${Math.round(ms)} мс`;
+  return t("ms", Math.round(ms));
 }
 
 function formatPercent(value) {
@@ -82,7 +232,7 @@ function badge(text, kind) {
 
 // marks rows imported from the Wayback Machine rather than checked by DomainWatch
 function archiveMark(item) {
-  return item.source === "archive" ? ` ${badge("архив", "neutral")}` : "";
+  return item.source === "archive" ? ` ${badge(t("archive"), "neutral")}` : "";
 }
 
 async function loadDomains() {
@@ -120,18 +270,18 @@ function renderRow(domain, stats) {
   // current state comes from the latest check; uptime only decides whether an
   // online domain has been flaky recently
   const statusBadge = !hasChecks
-    ? badge("нет данных", "neutral")
+    ? badge(t("noData"), "neutral")
     : !stats.is_available_now
     ? badge("offline", "bad")
     : stats.uptime_percent >= 99.9
     ? badge("online", "ok")
-    : badge("нестабильно", "warn");
+    : badge(t("unstable"), "warn");
 
   // changes also count the ones imported from the archive, so they can exist before
   // the first live check
   const defacementBadge = stats && stats.global_changes > 0
-    ? `<button class="badge badge-bad badge-button" data-action="defacements" data-id="${domain.id}" data-name="${escapeHtml(domain.name)}">${stats.global_changes} ${pluralRu(stats.global_changes, "изменение", "изменения", "изменений")}</button>`
-    : badge("нет", "neutral");
+    ? `<button class="badge badge-bad badge-button" data-action="defacements" data-id="${domain.id}" data-name="${escapeHtml(domain.name)}">${t("changesCount", stats.global_changes)}</button>`
+    : badge(t("no"), "neutral");
 
   // data-label is shown as the field name when the table collapses into cards on narrow screens
   return `
@@ -140,15 +290,15 @@ function renderRow(domain, stats) {
         <div>${escapeHtml(domain.name)}</div>
         <div class="domain-url">${escapeHtml(domain.url)}</div>
       </td>
-      <td data-label="Статус">${statusBadge}</td>
-      <td data-label="Uptime">${hasChecks ? formatPercent(stats.uptime_percent) : "—"}</td>
-      <td data-label="Ср. отклик">${hasChecks ? formatMs(stats.avg_response_time_ms) : "—"}</td>
-      <td data-label="Изменения">${defacementBadge}</td>
+      <td data-label="${t("colStatus")}">${statusBadge}</td>
+      <td data-label="${t("colUptime")}">${hasChecks ? formatPercent(stats.uptime_percent) : "—"}</td>
+      <td data-label="${t("colAvgResponse")}">${hasChecks ? formatMs(stats.avg_response_time_ms) : "—"}</td>
+      <td data-label="${t("colChanges")}">${defacementBadge}</td>
       <td class="actions-cell">
         <div class="row-actions">
-          <button class="small" data-action="check" data-id="${domain.id}">Проверить</button>
-          <button class="small secondary" data-action="history" data-id="${domain.id}" data-name="${escapeHtml(domain.name)}">История</button>
-          <button class="small danger" data-action="delete" data-id="${domain.id}">Удалить</button>
+          <button class="small" data-action="check" data-id="${domain.id}">${t("check")}</button>
+          <button class="small secondary" data-action="history" data-id="${domain.id}" data-name="${escapeHtml(domain.name)}">${t("historyBtn")}</button>
+          <button class="small danger" data-action="delete" data-id="${domain.id}">${t("delete")}</button>
         </div>
       </td>
     </tr>
@@ -170,24 +320,24 @@ async function onRowAction(event) {
     button.disabled = true;
     try {
       await apiRequest(`/domains/${id}/checks`, { method: "POST" });
-      showToast("Проверка выполнена");
+      showToast(t("checkDone"));
       await loadDomains();
     } catch (err) {
-      showToast(`Ошибка проверки: ${err.message}`, true);
+      showToast(t("checkError", err.message), true);
     } finally {
       button.disabled = false;
     }
   }
 
   if (action === "delete") {
-    if (!confirm("Удалить домен и всю историю проверок?")) return;
+    if (!confirm(t("confirmDelete"))) return;
     try {
       await apiRequest(`/domains/${id}`, { method: "DELETE" });
       if (historyState.domainId === id) closeHistory();
-      showToast("Домен удалён");
+      showToast(t("domainDeleted"));
       await loadDomains();
     } catch (err) {
-      showToast(`Ошибка удаления: ${err.message}`, true);
+      showToast(t("deleteError", err.message), true);
     }
   }
 
@@ -203,6 +353,7 @@ async function onRowAction(event) {
 // state of the history calendar: which domain/month is shown and which day is picked
 const historyState = {
   domainId: null,
+  domainName: null,
   month: null, // Date set to the 1st of the shown month, local time
   checksByDay: new Map(), // "YYYY-MM-DD" (local) -> checks, newest first
   defacementsByCheck: new Map(),
@@ -219,9 +370,10 @@ function dayKey(date) {
 // opens the history panel for one domain; both tabs (calendar and the full list
 // of changes) always belong to that domain and are reloaded when switching domains
 async function openHistory(domainId, domainName, tab = "calendar") {
-  historyTitle.textContent = `История проверок — ${domainName}`;
+  historyTitle.textContent = t("historyFor", domainName);
   historyPanel.hidden = false;
   historyState.domainId = domainId;
+  historyState.domainName = domainName;
   showHistoryTab(tab);
   historyPanel.scrollIntoView({ behavior: "smooth" });
   await Promise.all([showCurrentMonth(), loadDefacements(domainId), loadOutages(domainId)]);
@@ -251,8 +403,8 @@ async function loadHistoryMonth(preferredDay = null) {
   const until = new Date(month.getFullYear(), month.getMonth() + 1, 1).toISOString();
   const range = `since=${encodeURIComponent(since)}&until=${encodeURIComponent(until)}&limit=10000`;
 
-  calendarMonth.textContent = month.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
-  calendarGrid.innerHTML = `<p class="empty">Загрузка…</p>`;
+  calendarMonth.textContent = month.toLocaleDateString(t("locale"), { month: "long", year: "numeric" });
+  calendarGrid.innerHTML = `<p class="empty">${t("loading")}</p>`;
   historyTable.hidden = true;
   dayEmpty.hidden = true;
   dayTitle.textContent = "";
@@ -283,7 +435,7 @@ async function loadHistoryMonth(preferredDay = null) {
     renderCalendar();
     renderSelectedDay();
   } catch (err) {
-    calendarGrid.innerHTML = `<p class="error">Ошибка загрузки: ${escapeHtml(err.message)}</p>`;
+    calendarGrid.innerHTML = `<p class="error">${t("loadError", escapeHtml(err.message))}</p>`;
   }
 }
 
@@ -317,7 +469,7 @@ function renderCalendar() {
       : "ok";
     classes.push(`status-${status}`);
     cells.push(`
-      <button class="${classes.join(" ")}" data-day="${key}" title="${checks.length} проверок">
+      <button class="${classes.join(" ")}" data-day="${key}" title="${t("checksCount", checks.length)}">
         <span class="day-num">${day}</span>
         <span class="day-count">${checks.length}</span>
       </button>
@@ -339,13 +491,13 @@ function renderSelectedDay() {
   if (selectedDay === null) {
     dayTitle.textContent = "";
     historyTable.hidden = true;
-    dayEmpty.textContent = "В этом месяце проверок не было";
+    dayEmpty.textContent = t("noChecksThisMonth");
     dayEmpty.hidden = false;
     return;
   }
 
   const [y, m, d] = selectedDay.split("-").map(Number);
-  dayTitle.textContent = new Date(y, m - 1, d).toLocaleDateString("ru-RU", {
+  dayTitle.textContent = new Date(y, m - 1, d).toLocaleDateString(t("locale"), {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -373,13 +525,13 @@ function shiftHistoryMonth(delta) {
 }
 
 function renderHistoryRow(check, defacement) {
-  const time = new Date(check.checked_at).toLocaleTimeString("ru-RU");
-  const availableBadge = check.is_available ? badge("да", "ok") : badge("нет", "bad");
+  const time = new Date(check.checked_at).toLocaleTimeString(t("locale"));
+  const availableBadge = check.is_available ? badge(t("yes"), "ok") : badge(t("no"), "bad");
   const defacementBadge = !check.has_global_changes
-    ? badge("нет", "neutral")
+    ? badge(t("no"), "neutral")
     : defacement
-    ? `<button class="badge badge-bad badge-button" data-toggle-diff="${check.id}">изменение ▾</button>`
-    : badge("изменение", "bad");
+    ? `<button class="badge badge-bad badge-button" data-toggle-diff="${check.id}">${t("change")} ▾</button>`
+    : badge(t("change"), "bad");
   const similarity = check.similarity_ratio !== null ? check.similarity_ratio.toFixed(2) : "—";
 
   return `
@@ -404,26 +556,26 @@ function renderHistoryDiffRow(checkId, defacement) {
 }
 
 async function loadDefacements(domainId) {
-  defacementsBody.innerHTML = `<p class="empty">Загрузка…</p>`;
+  defacementsBody.innerHTML = `<p class="empty">${t("loading")}</p>`;
 
   try {
     const defacements = await apiRequest(`/domains/${domainId}/defacements`);
     // ignore a response for a domain the user already navigated away from
     if (domainId !== historyState.domainId) return;
     if (defacements.length === 0) {
-      defacementsBody.innerHTML = `<p class="empty">Изменений нет</p>`;
+      defacementsBody.innerHTML = `<p class="empty">${t("noChanges")}</p>`;
       return;
     }
     defacementsBody.innerHTML = defacements.map(renderDefacement).join("");
   } catch (err) {
     if (domainId !== historyState.domainId) return;
-    defacementsBody.innerHTML = `<p class="error">Ошибка загрузки: ${escapeHtml(err.message)}</p>`;
+    defacementsBody.innerHTML = `<p class="error">${t("loadError", escapeHtml(err.message))}</p>`;
   }
 }
 
 async function loadOutages(domainId) {
   outagesTable.hidden = true;
-  outagesEmpty.textContent = "Загрузка…";
+  outagesEmpty.textContent = t("loading");
   outagesEmpty.hidden = false;
 
   try {
@@ -431,7 +583,7 @@ async function loadOutages(domainId) {
     // ignore a response for a domain the user already navigated away from
     if (domainId !== historyState.domainId) return;
     if (outages.length === 0) {
-      outagesEmpty.textContent = "Сайт ни разу не был недоступен";
+      outagesEmpty.textContent = t("neverDown");
       return;
     }
     outagesEmpty.hidden = true;
@@ -439,7 +591,7 @@ async function loadOutages(domainId) {
     outagesBody.innerHTML = outages.map(renderOutageRow).join("");
   } catch (err) {
     if (domainId !== historyState.domainId) return;
-    outagesEmpty.textContent = `Ошибка загрузки: ${err.message}`;
+    outagesEmpty.textContent = t("loadError", err.message);
   }
 }
 
@@ -449,7 +601,7 @@ function renderOutageRow(check) {
   const reason = check.error_message
     ? escapeHtml(check.error_message)
     : check.status_code
-    ? `Сервер ответил ошибкой ${check.status_code}`
+    ? t("serverError", check.status_code)
     : "—";
 
   return `
@@ -465,14 +617,14 @@ function renderDefacement(item) {
   const time = new Date(item.checked_at).toLocaleString("ru-RU");
   const similarity = item.similarity_ratio !== null ? item.similarity_ratio.toFixed(2) : "—";
   const diff = item.diff === null
-    ? `<p class="empty">Снимки страницы недоступны — изменения показать нельзя</p>`
+    ? `<p class="empty">${t("snapshotsUnavailable")}</p>`
     : `<div class="diff">${item.diff.map(renderDiffSegment).join(" ")}</div>`;
 
   return `
     <div class="defacement">
       <div class="defacement-meta">
-        <span>Добавлено: <strong>${time}</strong>${archiveMark(item)}</span>
-        <span>Схожесть: <strong>${similarity}</strong></span>
+        <span>${t("detectedAt")}: <strong>${time}</strong>${archiveMark(item)}</span>
+        <span>${t("similarity")}: <strong>${similarity}</strong></span>
       </div>
       ${diff}
     </div>
@@ -499,7 +651,7 @@ addForm.addEventListener("submit", async (event) => {
       body: JSON.stringify({ name, url }),
     });
     addForm.reset();
-    showToast("Домен добавлен");
+    showToast(t("domainAdded"));
     await loadDomains();
   } catch (err) {
     addError.textContent = err.message;
@@ -517,4 +669,44 @@ historyTabs.forEach((el) => {
   el.addEventListener("click", () => showHistoryTab(el.dataset.tab));
 });
 
-loadDomains().catch((err) => showToast(`Не удалось загрузить домены: ${err.message}`, true));
+// fills the static markup from index.html with strings of the current language
+function applyStaticTranslations() {
+  document.documentElement.lang = currentLang;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+    el.setAttribute("aria-label", t(el.dataset.i18nAria));
+  });
+  document.getElementById("calendar-weekdays").innerHTML = t("weekdays")
+    .map((day) => `<span>${day}</span>`)
+    .join("");
+  langButtons.forEach((el) => el.classList.toggle("active", el.dataset.lang === currentLang));
+}
+
+function setLanguage(lang) {
+  if (lang === currentLang) return;
+  currentLang = lang;
+  try {
+    localStorage.setItem(LANG_STORAGE_KEY, lang);
+  } catch {
+    // not persisted - the choice still applies to this page view
+  }
+  applyStaticTranslations();
+  // dynamic parts are rendered from JS, so re-render whatever is on screen
+  loadDomains().catch((err) => showToast(t("domainsLoadError", err.message), true));
+  if (historyState.domainId !== null) {
+    const { domainId, domainName, selectedDay } = historyState;
+    historyTitle.textContent = t("historyFor", domainName);
+    loadHistoryMonth(selectedDay);
+    loadDefacements(domainId);
+    loadOutages(domainId);
+  }
+}
+
+langButtons.forEach((el) => {
+  el.addEventListener("click", () => setLanguage(el.dataset.lang));
+});
+
+applyStaticTranslations();
+loadDomains().catch((err) => showToast(t("domainsLoadError", err.message), true));

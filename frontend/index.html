@@ -8,35 +8,41 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>DomainWatch<span class="accent">.uz</span></h1>
-    <p class="subtitle">Мониторинг доступности и детекция подмены контента</p>
+    <div class="topbar-row">
+      <h1>DomainWatch<span class="accent">.uz</span></h1>
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button class="small secondary" data-lang="ru">RU</button>
+        <button class="small secondary" data-lang="en">EN</button>
+      </div>
+    </div>
+    <p class="subtitle" data-i18n="subtitle">Мониторинг доступности и детекция подмены контента</p>
   </header>
 
   <main>
     <section class="panel">
-      <h2>Добавить домен</h2>
+      <h2 data-i18n="addDomain">Добавить домен</h2>
       <form id="add-domain-form" class="add-form">
         <input type="text" id="domain-name" placeholder="example.uz" required />
         <input type="url" id="domain-url" placeholder="https://example.uz" required />
-        <button type="submit">Добавить</button>
+        <button type="submit" data-i18n="add">Добавить</button>
       </form>
       <p id="add-error" class="error" hidden></p>
     </section>
 
     <section class="panel">
       <div class="panel-header">
-        <h2>Домены</h2>
-        <button id="refresh-btn" class="secondary">Обновить</button>
+        <h2 data-i18n="domains">Домены</h2>
+        <button id="refresh-btn" class="secondary" data-i18n="refresh">Обновить</button>
       </div>
-      <p id="domains-empty" class="empty" hidden>Пока нет ни одного домена — добавьте первый выше.</p>
+      <p id="domains-empty" class="empty" data-i18n="domainsEmpty" hidden>Пока нет ни одного домена — добавьте первый выше.</p>
       <table id="domains-table" hidden>
         <thead>
           <tr>
-            <th>Домен</th>
-            <th>Статус</th>
-            <th>Uptime</th>
-            <th>Ср. отклик</th>
-            <th>Изменения</th>
+            <th data-i18n="colDomain">Домен</th>
+            <th data-i18n="colStatus">Статус</th>
+            <th data-i18n="colUptime">Uptime</th>
+            <th data-i18n="colAvgResponse">Ср. отклик</th>
+            <th data-i18n="colChanges">Изменения</th>
             <th></th>
           </tr>
         </thead>
@@ -46,13 +52,13 @@
 
     <section class="panel" id="history-panel" hidden>
       <div class="panel-header">
-        <h2 id="history-title">История проверок</h2>
-        <button id="history-close" class="secondary">Закрыть</button>
+        <h2 id="history-title" data-i18n="history">История проверок</h2>
+        <button id="history-close" class="secondary" data-i18n="close">Закрыть</button>
       </div>
       <div class="tabs">
-        <button class="tab active" data-tab="calendar">Календарь</button>
-        <button class="tab" data-tab="changes">Все изменения</button>
-        <button class="tab" data-tab="outages">Были недоступны</button>
+        <button class="tab active" data-tab="calendar" data-i18n="tabCalendar">Календарь</button>
+        <button class="tab" data-tab="changes" data-i18n="tabChanges">Все изменения</button>
+        <button class="tab" data-tab="outages" data-i18n="tabOutages">Были недоступны</button>
       </div>
       <div id="tab-outages" hidden>
         <p id="outages-empty" class="empty" hidden></p>
@@ -60,9 +66,9 @@
           <table id="outages-table" hidden>
             <thead>
               <tr>
-                <th>Время</th>
-                <th>Код</th>
-                <th>Причина</th>
+                <th data-i18n="colTime">Время</th>
+                <th data-i18n="colCode">Код</th>
+                <th data-i18n="colReason">Причина</th>
               </tr>
             </thead>
             <tbody id="outages-body"></tbody>
@@ -71,27 +77,27 @@
       </div>
       <div id="tab-changes" hidden>
         <p class="legend">
-          <span class="diff-removed">удалено</span>
-          <span class="diff-added">добавлено</span>
+          <span class="diff-removed" data-i18n="removed">удалено</span>
+          <span class="diff-added" data-i18n="added">добавлено</span>
         </p>
         <div id="defacements-body"></div>
       </div>
       <div id="tab-calendar" class="history-layout">
         <div class="calendar">
           <div class="calendar-nav">
-            <button id="calendar-prev" class="small secondary" aria-label="Предыдущий месяц">‹</button>
+            <button id="calendar-prev" class="small secondary" data-i18n-aria="prevMonth" aria-label="Предыдущий месяц">‹</button>
             <span id="calendar-month"></span>
-            <button id="calendar-next" class="small secondary" aria-label="Следующий месяц">›</button>
-            <button id="calendar-today" class="small secondary">Этот месяц</button>
+            <button id="calendar-next" class="small secondary" data-i18n-aria="nextMonth" aria-label="Следующий месяц">›</button>
+            <button id="calendar-today" class="small secondary" data-i18n="thisMonth">Этот месяц</button>
           </div>
-          <div class="calendar-weekdays">
+          <div id="calendar-weekdays" class="calendar-weekdays">
             <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
           </div>
           <div id="calendar-grid" class="calendar-grid"></div>
           <p class="legend">
-            <span class="badge badge-ok">все проверки ок</span>
-            <span class="badge badge-warn">были недоступности</span>
-            <span class="badge badge-bad">были изменения</span>
+            <span class="badge badge-ok" data-i18n="legendOk">все проверки ок</span>
+            <span class="badge badge-warn" data-i18n="legendWarn">были недоступности</span>
+            <span class="badge badge-bad" data-i18n="legendBad">были изменения</span>
           </p>
         </div>
         <div class="history-day">
@@ -101,12 +107,12 @@
             <table id="history-table" hidden>
               <thead>
                 <tr>
-                  <th>Время</th>
-                  <th>Доступен</th>
-                  <th>Код</th>
-                  <th>Отклик, мс</th>
-                  <th>Схожесть</th>
-                  <th>Изменения</th>
+                  <th data-i18n="colTime">Время</th>
+                  <th data-i18n="colAvailable">Доступен</th>
+                  <th data-i18n="colCode">Код</th>
+                  <th data-i18n="colResponseMs">Отклик, мс</th>
+                  <th data-i18n="colSimilarity">Схожесть</th>
+                  <th data-i18n="colChanges">Изменения</th>
                 </tr>
               </thead>
               <tbody id="history-body"></tbody>
