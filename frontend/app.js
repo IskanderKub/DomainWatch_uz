@@ -308,7 +308,12 @@ function renderRow(domain, stats) {
 function escapeHtml(value) {
   const div = document.createElement("div");
   div.textContent = value;
-  return div.innerHTML;
+  // innerHTML serialisation of a text node escapes & < > but NOT quotes, and this
+  // output is interpolated into attributes (data-name on the badge and the history
+  // button). A quote in a domain name would close the attribute early and let the
+  // rest of the name become real markup - an onmouseover= that fires for anyone
+  // looking at the dashboard. Quotes are escaped here so both uses are safe.
+  return div.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 async function onRowAction(event) {
