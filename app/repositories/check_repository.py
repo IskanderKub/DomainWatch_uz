@@ -36,7 +36,10 @@ class CheckRepository:
         is_available: bool | None = None,
         source: str | None = None,
     ) -> list[CheckResult]:
-        # most recent checks first; since/until narrow it to a time window [since, until)
+        # most recent checks first; since/until narrow it to a time window [since, until).
+        # id breaks ties: checked_at defaults to the insert moment, so several checks
+        # can share one timestamp and the order between them would otherwise be
+        # undefined - which decides is_available_now in StatsService.
         query = self.db.query(CheckResult).filter(CheckResult.domain_id == domain_id)
         if source is not None:
             query = query.filter(CheckResult.source == source)
@@ -46,13 +49,17 @@ class CheckRepository:
             query = query.filter(CheckResult.checked_at >= since)
         if until is not None:
             query = query.filter(CheckResult.checked_at < until)
-        return query.order_by(CheckResult.checked_at.desc()).limit(limit).all()
+        return (
+            query.order_by(CheckResult.checked_at.desc(), CheckResult.id.desc())
+            .limit(limit)
+            .all()
+        )
 
     def get_latest_for_domain(self, domain_id: int) -> CheckResult | None:
         return (
             self.db.query(CheckResult)
             .filter(CheckResult.domain_id == domain_id)
-            .order_by(CheckResult.checked_at.desc())
+            .order_by(CheckResult.checked_at.desc(), CheckResult.id.desc())
             .first()
         )
 
@@ -60,7 +67,7 @@ class CheckRepository:
         return (
             self.db.query(CheckResult)
             .filter(CheckResult.domain_id == domain_id, CheckResult.source == "live")
-            .order_by(CheckResult.checked_at.asc())
+            .order_by(CheckResult.checked_at.asc(), CheckResult.id.asc())
             .first()
         )
 

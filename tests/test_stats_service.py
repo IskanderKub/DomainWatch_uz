@@ -69,3 +69,36 @@ def test_get_domain_stats_no_checks(db_session):
     assert stats.uptime_percent == 0.0
     assert stats.avg_response_time_ms is None
     assert stats.last_check_at is None
+
+
+def test_is_available_now_is_deterministic_when_timestamps_collide(db_session):
+    # checked_at defaults to the insert moment, so several checks of one domain can
+    # share a timestamp. Without a tiebreaker the order between them is undefined and
+    # is_available_now - taken from the first row - flips between runs. The timestamps
+    # here are identical on purpose, to reproduce that collision every time.
+    from datetime import datetime, timezone
+
+    from app.models.sql_models import CheckResult, Domain
+
+    domain = Domain(name="tie.uz", url="https://tie.uz")
+    db_session.add(domain)
+    db_session.commit()
+    db_session.refresh(domain)
+
+    same_moment = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    db_session.add_all(
+        [
+            CheckResult(domain_id=domain.id, checked_at=same_moment, is_available=True),
+            CheckResult(domain_id=domain.id, checked_at=same_moment, is_available=True),
+            # inserted last, so this is the current state
+            CheckResult(
+                domain_id=domain.id, checked_at=same_moment, is_available=False
+            ),
+        ]
+    )
+    db_session.commit()
+
+    stats = StatsService(db_session).get_domain_stats(domain.id)
+
+    assert stats.total_checks == 3
+    assert stats.is_available_now is False

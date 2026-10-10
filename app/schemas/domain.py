@@ -19,8 +19,16 @@ class DomainCreate(BaseModel):
         url = url.strip()
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https") or not parsed.netloc:
-            raise ValueError("URL must start with http:// or https://, e.g. https://example.uz")
+            raise ValueError(
+                "URL must start with http:// or https://, e.g. https://example.uz"
+            )
         return url
+
+
+class DomainUpdate(BaseModel):
+    """Payload for pausing or resuming monitoring of a domain."""
+
+    is_active: bool
 
 
 class DomainRead(BaseModel):

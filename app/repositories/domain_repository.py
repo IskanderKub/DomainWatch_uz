@@ -28,6 +28,12 @@ class DomainRepository:
             query = query.filter(Domain.is_active.is_(True))
         return query.order_by(Domain.id).all()
 
+    def set_active(self, domain: Domain, is_active: bool) -> Domain:
+        domain.is_active = is_active
+        self.db.commit()
+        self.db.refresh(domain)
+        return domain
+
     def delete(self, domain: Domain) -> None:
         # cascade="all, delete-orphan" on Domain.checks also removes its check history
         self.db.delete(domain)

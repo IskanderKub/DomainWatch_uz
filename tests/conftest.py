@@ -1,5 +1,6 @@
 # Shared pytest fixtures: an in-memory SQLite DB and a FastAPI test client wired
 # to it, so the test suite never needs a real PostgreSQL/MongoDB instance running.
+import mongomock
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -36,6 +37,21 @@ def _no_archive_import(monkeypatch):
     # the import runs as a background task with its own session from .env - in tests
     # it would query the real Wayback Machine and write to the developer's database
     monkeypatch.setattr(settings, "archive_import_on_create", False)
+
+
+@pytest.fixture(autouse=True)
+def mongo_collection(monkeypatch):
+    """Swap the snapshots collection for an in-memory one.
+
+    Any code path that builds a SnapshotRepository without an explicit collection
+    would otherwise reach for a real MongoDB and stall until the server-selection
+    timeout expires.
+    """
+    collection = mongomock.MongoClient().domainwatch.snapshots
+    monkeypatch.setattr(
+        "app.repositories.snapshot_repository.snapshots_collection", collection
+    )
+    return collection
 
 
 @pytest.fixture
