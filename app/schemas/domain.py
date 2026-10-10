@@ -2,14 +2,25 @@
 from datetime import datetime
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class DomainCreate(BaseModel):
     """Payload for registering a new domain to monitor."""
 
-    name: str
+    # the name is the natural key (it's what 409 Conflict is raised on) and the label
+    # the dashboard renders, so it can be neither empty nor arbitrarily long
+    name: str = Field(min_length=1, max_length=255)
     url: str
+
+    @field_validator("name")
+    @classmethod
+    def name_must_not_be_blank(cls, name: str) -> str:
+        # "   " passes min_length but is not a usable name
+        name = name.strip()
+        if not name:
+            raise ValueError("Name must not be empty")
+        return name
 
     @field_validator("url")
     @classmethod

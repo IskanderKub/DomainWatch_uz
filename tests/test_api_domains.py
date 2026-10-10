@@ -95,3 +95,22 @@ def test_pause_and_resume_domain(client):
 def test_pause_unknown_domain_returns_404(client):
     response = client.patch("/api/v1/domains/999", json={"is_active": False})
     assert response.status_code == 404
+
+
+def test_create_domain_rejects_unusable_names(client):
+    # the name is the natural key and the dashboard label: empty, whitespace-only
+    # and absurdly long values must not reach the database
+    for name in ["", "   ", "N" * 256]:
+        response = client.post(
+            "/api/v1/domains", json={"name": name, "url": "https://example.uz"}
+        )
+        assert response.status_code == 422, name
+
+
+def test_create_domain_trims_whitespace_around_the_name(client):
+    response = client.post(
+        "/api/v1/domains", json={"name": "  example.uz  ", "url": "https://example.uz"}
+    )
+
+    assert response.status_code == 201
+    assert response.json()["name"] == "example.uz"

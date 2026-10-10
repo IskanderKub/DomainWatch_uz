@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from pymongo.errors import PyMongoError
 
 from app.api.v1 import router as api_v1_router
 from app.core.migrations import upgrade_schema
@@ -18,6 +19,8 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
 )
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,8 +28,20 @@ async def lifespan(app: FastAPI):
     # pet project; a production service would use Alembic migrations instead
     Base.metadata.create_all(bind=engine)
     upgrade_schema(engine)
-    ensure_indexes()
-    ensure_schema_validator()
+    try:
+        ensure_indexes()
+        ensure_schema_validator()
+    except PyMongoError as exc:
+        # every Mongo call at runtime already tolerates an outage, so availability
+        # monitoring keeps working without snapshots. Startup has to tolerate it too:
+        # otherwise an unreachable Mongo takes the whole service down with it, which
+        # is the one moment the fallback matters most. The indexes and the validator
+        # are created by the next start that does reach Mongo.
+        logger.warning(
+            "MongoDB unavailable at startup - content snapshots are disabled "
+            "until it comes back: %s",
+            exc,
+        )
     start_scheduler()
     yield
     stop_scheduler()
