@@ -248,3 +248,64 @@ def test_every_check_of_unchanged_content_finds_its_snapshot(db_session, mocker)
     assert len(snapshot_repo.documents) == 1
     assert snapshot_repo.get_by_check_id(first.id) is not None
     assert snapshot_repo.get_by_check_id(second.id) is not None
+
+
+def test_check_domain_does_not_store_an_empty_page(db_session, mocker):
+    # a 200 with no visible text is a broken page, not content worth a baseline:
+    # storing "" would make the next check compare blank against blank
+    domain = _make_domain(db_session)
+    mocker.patch(
+        "app.services.checker_service.requests.get",
+        return_value=FakeResponse(text="<html><body></body></html>"),
+    )
+    snapshot_repo = FakeSnapshotRepository()
+    service = CheckerService(db_session, snapshot_repository=snapshot_repo)
+
+    result = service.check_domain(domain)
+
+    assert snapshot_repo.documents == []
+    assert result.similarity_ratio is None
+    assert result.has_global_changes is False
+
+
+def test_check_domain_stays_blind_to_nothing_when_a_page_is_empty_twice(
+    db_session, mocker
+):
+    # the bug this guards: two blank checks in a row used to compare "" against ""
+    # and report similarity 1.0, so a site serving nothing looked perfectly healthy
+    domain = _make_domain(db_session)
+    mocker.patch(
+        "app.services.checker_service.requests.get",
+        return_value=FakeResponse(text="<html><body>   </body></html>"),
+    )
+    snapshot_repo = FakeSnapshotRepository()
+    service = CheckerService(db_session, snapshot_repository=snapshot_repo)
+
+    service.check_domain(domain)
+    second = service.check_domain(domain)
+
+    assert snapshot_repo.documents == []
+    assert second.similarity_ratio is None
+
+
+def test_check_domain_flags_a_page_that_goes_blank(db_session, mocker):
+    # content disappearing is still a global change, and the last real content has
+    # to stay the baseline - otherwise the blank page becomes the new "normal"
+    domain = _make_domain(db_session)
+    mocker.patch(
+        "app.services.checker_service.requests.get",
+        return_value=FakeResponse(text="<html><body></body></html>"),
+    )
+    snapshot_repo = FakeSnapshotRepository()
+    snapshot_repo.save(domain.id, "Ministry of Finance of Uzbekistan")
+    service = CheckerService(db_session, snapshot_repository=snapshot_repo)
+
+    result = service.check_domain(domain)
+
+    assert result.similarity_ratio == 0.0
+    assert result.has_global_changes is True
+    assert len(snapshot_repo.documents) == 1
+    assert (
+        snapshot_repo.get_latest(domain.id)["text_content"]
+        == "Ministry of Finance of Uzbekistan"
+    )

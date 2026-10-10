@@ -99,9 +99,25 @@ class CheckerService:
                             similarity_ratio < settings.content_change_threshold
                         )
 
+                    # a 200 with no visible text is a broken page, not site content:
+                    # storing "" would make every later check compare blank against
+                    # blank, report similarity 1.0 and look permanently healthy. The
+                    # comparison above still runs, so a page that goes blank is flagged
+                    # against its last real content - we just keep that content as the
+                    # baseline instead of overwriting it with nothing.
+                    if text_content.strip():
                         # always store the new snapshot, even if this check flagged global
                         # changes, so the next check compares against the latest known content
-                    snapshot_id = self.snapshot_repository.save(domain.id, text_content)
+                        snapshot_id = self.snapshot_repository.save(
+                            domain.id, text_content
+                        )
+                    else:
+                        logger.warning(
+                            "Domain %s returned HTTP %s with an empty page - "
+                            "keeping the previous snapshot as the baseline",
+                            domain.name,
+                            response.status_code,
+                        )
                 except PyMongoError as exc:
                     logger.warning(
                         "Snapshot storage unavailable for domain %s: %s", domain.id, exc
