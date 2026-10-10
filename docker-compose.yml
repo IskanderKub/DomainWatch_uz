@@ -18,14 +18,18 @@ services:
       POSTGRES_PASSWORD: domainwatch
       POSTGRES_DB: domainwatch
     ports:
-      - "5433:5432"
+      # bound to the host loopback only: without 127.0.0.1 Docker publishes the port
+      # on every interface, so on a public server this database would be reachable
+      # from the internet - with the credentials that are in this very file
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   mongo:
     image: mongo:7
     ports:
-      - "27017:27017"
+      # loopback only, as above - MongoDB here runs with no authentication at all
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongo_data:/data/db
 
