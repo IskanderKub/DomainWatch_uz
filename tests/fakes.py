@@ -1,4 +1,6 @@
 from datetime import datetime, timezone
+
+from app.core.config import settings
 from app.repositories.snapshot_repository import _content_hash
 
 
@@ -9,6 +11,8 @@ class FakeSnapshotRepository:
 
     def save(self, domain_id: int, text_content: str):
         now = datetime.now(timezone.utc)
+        # mirrors SnapshotRepository.save: truncate first, then hash what we store
+        text_content = text_content[: settings.snapshot_max_text_length]
         content_hash = _content_hash(text_content)
         previous = self.get_latest(domain_id)
         if (
@@ -43,7 +47,9 @@ class FakeSnapshotRepository:
 
         if not matching:
             return None
-        return max(matching, key=lambda doc: doc["last_seen_at"])
+        # same tiebreaker as SnapshotRepository.get_latest: _id decides when two
+        # snapshots share a last_seen_at
+        return max(matching, key=lambda doc: (doc["last_seen_at"], doc["_id"]))
 
     def insert_archived(
         self, domain_id: int, text_content: str, captured_at: datetime, check_id: int
@@ -95,3 +101,9 @@ class FakeSnapshotRepository:
         if not matching:
             return None
         return max(matching, key=lambda doc: doc["checked_at"])
+
+    def delete_for_domain(self, domain_id: int) -> int:
+        remaining = [doc for doc in self.documents if doc["domain_id"] != domain_id]
+        deleted = len(self.documents) - len(remaining)
+        self.documents = remaining
+        return deleted

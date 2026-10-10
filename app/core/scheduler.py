@@ -26,7 +26,11 @@ def check_all_active_domains() -> None:
             try:
                 checker.check_domain(domain)
             except Exception:
-                # one domain failing (e.g. bad SSL cert) must not stop the rest of the batch
+                # one domain failing (e.g. bad SSL cert) must not stop the rest of the
+                # batch. The rollback matters: a failed commit leaves the session needing
+                # one, and every later domain in this loop would raise
+                # PendingRollbackError - monitoring would stop until the next restart.
+                db.rollback()
                 logger.exception("Failed to check domain %s", domain.name)
     finally:
         db.close()

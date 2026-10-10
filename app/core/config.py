@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     check_timeout_seconds: int = 5  # how long to wait before treating a domain as unavailable
     content_change_threshold: float = 0.4  # similarity below this vs previous snapshot => has_global_changes
     check_interval_minutes: int = 60  # how often the scheduler re-checks all active domains
+    snapshot_max_text_length: int = 1_000_000  # page text is truncated to this length before storage
     snapshot_ttl_days: int = 30 # how long page snapshots are kept before Mongo expires them
     archive_import_on_create: bool = True  # import Wayback Machine history for new domains
     archive_backfill_days: int = 365  # how far back the archive import goes

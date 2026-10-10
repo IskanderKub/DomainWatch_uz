@@ -44,7 +44,9 @@ def test_list_and_delete_domain(client):
 
 
 def test_create_domain_rejects_url_without_scheme(client):
-    response = client.post("/api/v1/domains", json={"name": "example.uz", "url": "example.uz"})
+    response = client.post(
+        "/api/v1/domains", json={"name": "example.uz", "url": "example.uz"}
+    )
 
     assert response.status_code == 422
 
@@ -71,3 +73,25 @@ def test_archive_import_endpoint(client, mocker):
     assert response.status_code == 202
     start.assert_called_once_with(created["id"])
     assert client.post("/api/v1/domains/999/archive-import").status_code == 404
+
+
+def test_pause_and_resume_domain(client):
+    created = client.post(
+        "/api/v1/domains", json={"name": "pause.uz", "url": "https://pause.uz"}
+    ).json()
+
+    paused = client.patch(f"/api/v1/domains/{created['id']}", json={"is_active": False})
+    assert paused.status_code == 200
+    assert paused.json()["is_active"] is False
+    # a paused domain is skipped by the scheduler, which lists active_only
+    assert client.get("/api/v1/domains?active_only=true").json() == []
+    # but it is still there, with its history intact
+    assert len(client.get("/api/v1/domains").json()) == 1
+
+    resumed = client.patch(f"/api/v1/domains/{created['id']}", json={"is_active": True})
+    assert resumed.json()["is_active"] is True
+
+
+def test_pause_unknown_domain_returns_404(client):
+    response = client.patch("/api/v1/domains/999", json={"is_active": False})
+    assert response.status_code == 404

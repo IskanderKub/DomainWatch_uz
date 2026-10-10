@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.core.config import settings
-from app.schemas.domain import DomainCreate, DomainRead
+from app.schemas.domain import DomainCreate, DomainRead, DomainUpdate
 from app.services.archive_service import import_history_in_background
 from app.services.domain_service import DomainAlreadyExistsError, DomainService
 
@@ -39,6 +39,17 @@ def get_domain(domain_id: int, db: Session = Depends(get_db)):
     if domain is None:
         raise HTTPException(status_code=404, detail="Domain not found")
     return domain
+
+
+@router.patch("/{domain_id}", response_model=DomainRead)
+def update_domain(domain_id: int, payload: DomainUpdate, db: Session = Depends(get_db)):
+    # pausing keeps the domain and its history, unlike DELETE - the scheduler skips it
+    # because it only picks up domains where is_active is true
+    service = DomainService(db)
+    domain = service.get_domain(domain_id)
+    if domain is None:
+        raise HTTPException(status_code=404, detail="Domain not found")
+    return service.set_active(domain, payload.is_active)
 
 
 @router.delete("/{domain_id}", status_code=204)
